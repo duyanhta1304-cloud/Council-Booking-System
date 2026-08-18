@@ -1,8 +1,9 @@
 import express from "express"
 import dotenv from "dotenv"
-import testRoute from "./routes/test.route.js"
+import loginRoute from "./routes/login.route.js"
 import rateLimiter from "./middleware/rateLimit.js"
 import { connectDB } from "./db/db.js"
+import cors from "cors"
 
 dotenv.config()
 
@@ -13,7 +14,11 @@ const PORT = process.env.PORT || 5001
 app.use(express.json())
 app.use(rateLimiter)
 
-app.use("/test", testRoute)
+app.use(cors({
+    origin:"http://localhost:5173   "
+}));
+
+app.use("/login", loginRoute)
 
 connectDB().then(() => {
     app.listen(PORT, () => {

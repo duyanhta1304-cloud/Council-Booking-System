@@ -1,4 +1,8 @@
 /* TRY TO USE INLINE CSS THIS IS JUST BASIC VARIABLE */
+* {
+  margin: 0;
+  padding: 0;
+}
 
 :root {
   /* ==========================================================
