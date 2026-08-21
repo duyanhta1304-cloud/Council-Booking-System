@@ -1,14 +1,7 @@
 import { Routes, Route } from 'react-router'
-import { googleLogout } from '@react-oauth/google'
-import { useNavigate } from 'react-router'
-import { Link } from 'react-router'
-import { useAuth } from './context/authContext'
-import { useRef, useState, useEffect } from 'react'
-import { Outlet } from 'react-router'
 import "./global.css"
 
 import ProtectedRoute from './components/protectedRoute'
-import PublicOnlyRoute from './components/publicRoute'
 
 import Login from './pages/landing/login'
 import LandingPage from './pages/landing/landingPage'
@@ -45,9 +38,9 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
 
-      {/* Any authenticated user, no role restriction */}
+      {/* Authenticated but with a role we don't have pages for */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<RoleNotFound />} />
+        <Route path="/no-role" element={<RoleNotFound />} />
       </Route>
 
       {/* Admin-only */}

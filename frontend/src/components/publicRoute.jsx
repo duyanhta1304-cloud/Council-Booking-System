@@ -1,13 +1,13 @@
 import { Navigate, Outlet } from 'react-router'
-import { useAuth } from '../context/authContext'
+import { useAuth, homePathFor } from '../context/authContext'
 
 function PublicOnlyRoute() {
 
-    const { isAuthenticated, loading } = useAuth()
+    const { isAuthenticated, loading, user } = useAuth()
 
     if (loading) return null
 
-    return isAuthenticated ? <Navigate to="/home" replace /> : <Outlet />
+    return isAuthenticated ? <Navigate to={homePathFor(user)} replace /> : <Outlet />
 }
 
 export default PublicOnlyRoute

@@ -1,27 +1,38 @@
 import mongoose from 'mongoose'
 
-
-export default userSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
-    id: {
-      type: String,
-      required: true,
-      unique: true, // creates a unique index, same as SQL UNIQUE
-    },
     name: {
       type: String,
       required: true,
+      trim: true,
     },
     email: {
       type: String,
       required: true,
-      unique: true,
+      unique: true, // creates a unique index, same as SQL UNIQUE
       lowercase: true,
       trim: true,
     },
+    // Only set for authProvider 'local'. select:false keeps it out of every
+    // normal query — use .select('+passwordHash') when verifying a login.
+    passwordHash: {
+      type: String,
+      select: false,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
+    googleId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
     emailVerified: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     profilePictureUrl: {
       type: String,
@@ -47,6 +58,26 @@ export default userSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // auto-adds createdAt and updatedAt, replaces your manual columns
+    timestamps: true, // auto-adds createdAt and updatedAt
   }
 );
+
+// Shape sent to the client. Never includes passwordHash.
+userSchema.methods.toPublicJSON = function () {
+  return {
+    id: this._id.toString(),
+    name: this.name,
+    email: this.email,
+    role: this.role,
+    emailVerified: this.emailVerified,
+    profilePictureUrl: this.profilePictureUrl,
+    phoneNumber: this.phoneNumber,
+    address: this.address,
+    lastLoginAt: this.lastLoginAt,
+    createdAt: this.createdAt,
+  }
+}
+
+const User = mongoose.model('User', userSchema)
+
+export default User

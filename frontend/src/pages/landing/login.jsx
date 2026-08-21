@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { GoogleLogin } from '@react-oauth/google'
-import { useAuth } from '../../context/authContext'
+import { useAuth, homePathFor } from '../../context/authContext'
 import { Link } from 'react-router'
 import { toast } from 'react-hot-toast'
 import { useEffect } from 'react'
@@ -10,25 +10,21 @@ function Login() {
   const navigate = useNavigate()
 
   const [mode, setMode] = useState('login') // 'login' | 'signup'
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [accountType, setAccountType] = useState('resident');
+  const [submitting, setSubmitting] = useState(false)
+  const [accountType, setAccountType] = useState('resident')
 
   const isSignup = mode === 'signup'
 
   useEffect(() => {
     if (loading || !user) return
 
-    const roleRoutes = {
-      admin: '/admin',
-      staff: '/staff',
-      resident: '/resident',
-    }
+    const destination = homePathFor(user)
 
-    const destination = roleRoutes[user.role]
-
-    if (!destination) {
+    if (destination === '/') {
       toast.error('Your account does not have a valid role.')
       return
     }
@@ -52,17 +48,23 @@ function Login() {
     setError('')
   }
 
-  const handleGoogleSuccess = (credentialResponse) => {
-    login(credentialResponse)
-    navigate('/resident/facilities')
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('')
+
+    try {
+      const signedInUser = await login(credentialResponse)
+      navigate(homePathFor(signedInUser), { replace: true })
+    } catch {
+      setError('Google sign-in failed.')
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    if (!email || !password) {
-      setError('Please fill in both fields.')
+    if (!email || !password || (isSignup && !name)) {
+      setError('Please fill in all fields.')
       return
     }
     if (isSignup && password.length < 8) {
@@ -70,11 +72,15 @@ function Login() {
       return
     }
 
+    setSubmitting(true)
+
     try {
-      await loginWithCredentials({ email, password, mode })
-      navigate('/home', { replace: true })
-    } catch {
-      setError(isSignup ? 'Could not create account. Please try again.' : 'Invalid email or password.')
+      const signedInUser = await loginWithCredentials({ name, email, password, mode, accountType })
+      navigate(homePathFor(signedInUser), { replace: true })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -156,6 +162,14 @@ function Login() {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          {isSignup && (
+            <label style={labelStyle}>
+              Full name
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="Jane Citizen" style={inputStyle} required />
+            </label>
+          )}
+
           <label style={labelStyle}>
             Email
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
@@ -168,59 +182,38 @@ function Login() {
               placeholder={isSignup ? 'At least 8 characters' : '••••••••'} style={inputStyle} required />
           </label>
 
-          {
-            isSignup &&
+          {isSignup && (
             <div style={labelStyle}>
               Account Type
 
               <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: '8px' }}>
-                <label>
-                  <input
-                    type="radio"
-                    name="accountType"
-                    value="resident"
-                    checked={accountType === 'resident'}
-                    onChange={(e) => setAccountType(e.target.value)}
-                  />
-                  Resident
-                </label>
-
-                <label>
-                  <input
-                    type="radio"
-                    name="accountType"
-                    value="staff"
-                    checked={accountType === 'staff'}
-                    onChange={(e) => setAccountType(e.target.value)}
-                  />
-                  Staff
-                </label>
-
-                <label>
-                  <input
-                    type="radio"
-                    name="accountType"
-                    value="admin"
-                    checked={accountType === 'admin'}
-                    onChange={(e) => setAccountType(e.target.value)}
-                  />
-                  Admin
-                </label>
+                {['resident', 'staff', 'admin'].map((role) => (
+                  <label key={role} style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'capitalize' }}>
+                    <input
+                      type="radio"
+                      name="accountType"
+                      value={role}
+                      checked={accountType === role}
+                      onChange={(e) => setAccountType(e.target.value)}
+                    />
+                    {role}
+                  </label>
+                ))}
               </div>
             </div>
-          }
+          )}
 
-
-          <button type="submit" style={{
+          <button type="submit" disabled={submitting} style={{
             backgroundColor: 'var(--color-primary)', color: 'var(--color-text-on-dark)',
             border: 'none', borderRadius: 'var(--radius-md)', padding: '12px',
             fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-semibold)',
-            cursor: 'pointer', marginTop: 'var(--space-xs)', transition: 'background var(--transition-fast)',
+            cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1,
+            marginTop: 'var(--space-xs)', transition: 'background var(--transition-fast)',
           }}
             onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-primary-hover)'}
             onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-primary)'}
           >
-            {isSignup ? 'Create account' : 'Log in'}
+            {submitting ? 'Please wait…' : isSignup ? 'Create account' : 'Log in'}
           </button>
         </form>
 
