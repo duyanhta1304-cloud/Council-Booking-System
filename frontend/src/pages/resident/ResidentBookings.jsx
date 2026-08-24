@@ -1,50 +1,55 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '../../lib/axios'
 import { PageHeader, Card, Badge, tableStyles, buttonOutlineStyle, buttonDangerStyle } from '../../components/ui'
-
-// TODO: replace with GET /api/resident/bookings
-const INITIAL_BOOKINGS = [
-  { id: 1, facility: 'Community Hall A', date: '20 Aug', time: '2:00 PM', status: 'Confirmed', affectedByClosure: false },
-  { id: 2, facility: 'Sports Court 1', date: '24 Aug', time: '10:00 AM', status: 'Pending', affectedByClosure: false },
-  { id: 3, facility: 'Sports Court 2', date: '22 Aug', time: '4:00 PM', status: 'Confirmed', affectedByClosure: true },
-  { id: 4, facility: 'Meeting Room D', date: '10 Aug', time: '9:00 AM', status: 'Completed', affectedByClosure: false },
-  { id: 5, facility: 'BBQ Pavilion', date: '5 Aug', time: '1:00 PM', status: 'Cancelled', affectedByClosure: false },
-]
+import toast from 'react-hot-toast'
 
 const FILTERS = ['All', 'Upcoming', 'Pending', 'Past', 'Cancelled']
 
 function statusTone(status) {
-  if (status === 'Confirmed') return 'success'
+  if (status === 'Approved') return 'success'
   if (status === 'Pending') return 'warning'
-  if (status === 'Cancelled') return 'danger'
+  if (status === 'Cancelled' || status === 'Rejected') return 'danger'
   return 'default'
 }
 
 function matchesFilter(booking, filter) {
   if (filter === 'All') return true
-  if (filter === 'Upcoming') return booking.status === 'Confirmed'
+  if (filter === 'Upcoming') return booking.status === 'Approved' && new Date(booking.startTime) > new Date()
   if (filter === 'Pending') return booking.status === 'Pending'
-  if (filter === 'Past') return booking.status === 'Completed'
-  if (filter === 'Cancelled') return booking.status === 'Cancelled'
+  if (filter === 'Past') return booking.status === 'Approved' && new Date(booking.startTime) <= new Date()
+  if (filter === 'Cancelled') return booking.status === 'Cancelled' || booking.status === 'Rejected'
   return true
 }
 
 function ResidentBookings() {
-  const [bookings, setBookings] = useState(INITIAL_BOOKINGS)
+  const [bookings, setBookings] = useState([])
   const [filter, setFilter] = useState('All')
+  const [loading, setLoading] = useState(true)
 
-  function handleCancel(id) {
-    // TODO: PATCH /api/bookings/:id/cancel
-    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 'Cancelled' } : b)))
+  useEffect(() => {
+    api.get('/resident/bookings')
+      .then(({ data }) => setBookings(data))
+      .catch(() => toast.error('Could not load bookings'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleCancel(id) {
+    try {
+      const { data } = await api.patch(`/bookings/${id}/cancel`)
+      setBookings((prev) => prev.map((b) => (b._id === id ? data : b)))
+      toast.success('Booking cancelled')
+    } catch {
+      toast.error('Could not cancel booking')
+    }
   }
 
   const filtered = bookings.filter((b) => matchesFilter(b, filter))
 
+  if (loading) return <p>Loading...</p>
+
   return (
     <div>
-      <PageHeader
-        title="My bookings"
-        description="View, track and cancel your facility bookings."
-      />
+      <PageHeader title="My bookings" description="View, track and cancel your facility bookings." />
 
       <div style={{ display: 'flex', gap: 'var(--space-xs)', marginBottom: 'var(--space-md)', flexWrap: 'wrap' }}>
         {FILTERS.map((f) => (
@@ -69,31 +74,24 @@ function ResidentBookings() {
             <thead>
               <tr>
                 <th style={tableStyles.th}>Facility</th>
-                <th style={tableStyles.th}>Date</th>
-                <th style={tableStyles.th}>Time</th>
+                <th style={tableStyles.th}>Start Time</th>
+                <th style={tableStyles.th}>End Time</th>
                 <th style={tableStyles.th}>Status</th>
                 <th style={tableStyles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((b) => (
-                <tr key={b.id}>
-                  <td style={tableStyles.td}>
-                    {b.facility}
-                    {b.affectedByClosure && (
-                      <div style={{ marginTop: '4px' }}>
-                        <Badge tone="warning">Affected by closure</Badge>
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{b.date}</td>
-                  <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{b.time}</td>
+                <tr key={b._id}>
+                  <td style={tableStyles.td}>{b.facility?.name ?? '—'}</td>
+                  <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{new Date(b.startTime).toLocaleString()}</td>
+                  <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{new Date(b.endTime).toLocaleString()}</td>
                   <td style={tableStyles.td}>
                     <Badge tone={statusTone(b.status)}>{b.status}</Badge>
                   </td>
                   <td style={tableStyles.td}>
-                    {(b.status === 'Confirmed' || b.status === 'Pending') ? (
-                      <button style={buttonDangerStyle} onClick={() => handleCancel(b.id)}>
+                    {(b.status === 'Approved' || b.status === 'Pending') ? (
+                      <button style={buttonDangerStyle} onClick={() => handleCancel(b._id)}>
                         Cancel
                       </button>
                     ) : (
@@ -106,13 +104,13 @@ function ResidentBookings() {
               ))}
             </tbody>
           </table>
-        </div>
 
-        {filtered.length === 0 && (
-          <div style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
-            No bookings match this filter.
-          </div>
-        )}
+          {filtered.length === 0 && (
+            <div style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
+              No bookings match this filter.
+            </div>
+          )}
+        </div>
       </Card>
     </div>
   )

@@ -1,20 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '../../lib/axios'
 import { PageHeader, Card, StatusBadge, Button, EmptyState } from '../../components/ui'
-
-// TODO: replace with GET /api/bookings?status=pending
-const INITIAL_REQUESTS = [
-  { id: 1, facility: 'Community Hall A', requester: 'J. Tan', date: '22 Aug, 2:00 PM', conflict: false },
-  { id: 2, facility: 'Meeting Room D', requester: 'S. Ahmed', date: '23 Aug, 9:00 AM', conflict: true },
-  { id: 3, facility: 'Sports Court 1', requester: 'M. Lopez', date: '24 Aug, 4:00 PM', conflict: false },
-]
+import toast from 'react-hot-toast'
 
 function ApprovalsQueue() {
-  const [requests, setRequests] = useState(INITIAL_REQUESTS)
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const respond = (id) => {
-    // TODO: POST /api/bookings/:id/approve  or  /api/bookings/:id/reject
-    setRequests((prev) => prev.filter((r) => r.id !== id))
+  useEffect(() => {
+    api.get('/bookings?status=Pending')
+      .then(({ data }) => setRequests(data))
+      .catch(() => toast.error('Could not load pending bookings'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const respond = async (id, action) => {
+    try {
+      await api.post(`/bookings/${id}/${action}`)
+      setRequests((prev) => prev.filter((r) => r._id !== id))
+      toast.success(`Booking ${action}d successfully`)
+    } catch {
+      toast.error(`Could not ${action} booking`)
+    }
   }
+
+  if (loading) return <p>Loading...</p>
 
   return (
     <div>
@@ -24,31 +34,22 @@ function ApprovalsQueue() {
         {requests.length === 0 && <EmptyState message="No pending requests — you're all caught up." />}
 
         {requests.map((r) => (
-          <div key={r.id} style={{
+          <div key={r._id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-md)',
             padding: 'var(--space-md)', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap',
           }}>
             <div style={{ minWidth: '200px' }}>
               <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', fontWeight: 'var(--font-weight-medium)' }}>
-                {r.facility}
+                {r.facility?.name ?? 'Unknown facility'}
               </div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
-                {r.requester} · {r.date}
+                {r.user?.name ?? 'Unknown user'} · {new Date(r.startTime).toLocaleString()}
               </div>
             </div>
 
-            {r.conflict && <StatusBadge label="Conflict" tone="danger" />}
-
             <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-              <Button variant="secondary" onClick={() => respond(r.id)}>Reject</Button>
-              <Button
-                variant="primary"
-                onClick={() => respond(r.id)}
-                disabled={r.conflict}
-                style={{ opacity: r.conflict ? 0.5 : 1, cursor: r.conflict ? 'not-allowed' : 'pointer' }}
-              >
-                Approve
-              </Button>
+              <Button variant="secondary" onClick={() => respond(r._id, 'reject')}>Reject</Button>
+              <Button variant="primary" onClick={() => respond(r._id, 'approve')}>Approve</Button>
             </div>
           </div>
         ))}

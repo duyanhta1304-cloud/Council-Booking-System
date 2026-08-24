@@ -1,0 +1,11 @@
+import express from "express";
+import { createBooking, getBookings, updateBookingStatus, cancelMyBooking } from "../controllers/booking.controller.js";
+import authMiddleware, { requireRole } from "../middleware/auth.js";
+const router = express.Router();
+router.post("/", authMiddleware, createBooking);
+router.get("/", authMiddleware, requireRole("admin", "staff"), getBookings);
+router.patch("/:id", authMiddleware, requireRole("admin", "staff"), updateBookingStatus);
+router.patch("/:id/cancel", authMiddleware, cancelMyBooking);
+router.post("/:id/approve", authMiddleware, requireRole("admin", "staff"), async (req,res) => { req.body.status = 'Approved'; return updateBookingStatus(req,res); });
+router.post("/:id/reject", authMiddleware, requireRole("admin", "staff"), async (req,res) => { req.body.status = 'Rejected'; return updateBookingStatus(req,res); });
+export default router;

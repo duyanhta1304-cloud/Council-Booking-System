@@ -1,27 +1,50 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
+import api from '../../lib/axios'
+import { useAuth } from '../../context/authContext'
 import { PageHeader, Card, Badge, tableStyles, buttonStyle } from '../../components/ui'
-
-// TODO: replace with GET /api/resident/dashboard
-const UPCOMING_BOOKINGS = [
-  { id: 1, facility: 'Community Hall A', date: '20 Aug', time: '2:00 PM', status: 'Confirmed' },
-  { id: 2, facility: 'Sports Court 1', date: '24 Aug', time: '10:00 AM', status: 'Pending' },
-]
-
-const NOTICES = [
-  { id: 1, message: 'Sports Court 2 is closed for resurfacing until 25 Aug.', tone: 'warning' },
-]
+import toast from 'react-hot-toast'
 
 function statusTone(status) {
-  if (status === 'Confirmed') return 'success'
+  if (status === 'Approved') return 'success'
   if (status === 'Pending') return 'warning'
+  if (status === 'Cancelled' || status === 'Rejected') return 'danger'
   return 'default'
 }
 
 function ResidentHome() {
+  const { user } = useAuth()
+  const [upcomingBookings, setUpcomingBookings] = useState([])
+  const [notices, setNotices] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/resident/dashboard'),
+      api.get('/closures'),
+    ])
+      .then(([dashRes, closuresRes]) => {
+        setUpcomingBookings(dashRes.data.upcomingBookings || [])
+        // Show closures as notices — only upcoming/active ones
+        const now = new Date()
+        const activeClosures = closuresRes.data.filter(
+          (c) => new Date(c.endDate) >= now
+        )
+        setNotices(activeClosures)
+      })
+      .catch(() => toast.error('Could not load home data'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const formatDate = (d) => new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  const formatTime = (d) => new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+
+  if (loading) return <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)' }}>Loading...</p>
+
   return (
     <div>
       <PageHeader
-        title="Welcome back"
+        title={user?.name ? `Welcome back, ${user.name.split(' ')[0]}` : 'Welcome back'}
         description="Here's what's coming up and what's new with Council facilities."
         action={
           <Link to="/resident/facilities" style={{ textDecoration: 'none' }}>
@@ -30,15 +53,15 @@ function ResidentHome() {
         }
       />
 
-      {NOTICES.length > 0 && (
+      {notices.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
-          {NOTICES.map((n) => (
-            <div key={n.id} style={{
+          {notices.map((n) => (
+            <div key={n._id} style={{
               backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-text)',
               padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)',
               fontSize: 'var(--font-size-sm)',
             }}>
-              {n.message}
+              ⚠️ <strong>{n.facility?.name}</strong> is closed from {formatDate(n.startDate)} to {formatDate(n.endDate)}: {n.reason}
             </div>
           ))}
         </div>
@@ -57,7 +80,7 @@ function ResidentHome() {
           </Link>
         </div>
 
-        {UPCOMING_BOOKINGS.length === 0 ? (
+        {upcomingBookings.length === 0 ? (
           <div style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
             You have no upcoming bookings.
           </div>
@@ -73,11 +96,11 @@ function ResidentHome() {
                 </tr>
               </thead>
               <tbody>
-                {UPCOMING_BOOKINGS.map((b) => (
-                  <tr key={b.id}>
-                    <td style={tableStyles.td}>{b.facility}</td>
-                    <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{b.date}</td>
-                    <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{b.time}</td>
+                {upcomingBookings.map((b) => (
+                  <tr key={b._id}>
+                    <td style={tableStyles.td}>{b.facility?.name ?? '—'}</td>
+                    <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatDate(b.startTime)}</td>
+                    <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatTime(b.startTime)}</td>
                     <td style={tableStyles.td}>
                       <Badge tone={statusTone(b.status)}>{b.status}</Badge>
                     </td>

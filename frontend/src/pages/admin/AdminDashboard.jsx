@@ -1,28 +1,42 @@
+import { useState, useEffect } from 'react'
+import api from '../../lib/axios'
 import { PageHeader, Card, StatCard, StatusBadge } from '../../components/ui'
+import toast from 'react-hot-toast'
 
-// TODO: replace with GET /api/admin/dashboard
-const STATS = [
-  { label: 'Pending approvals', value: 5, tone: 'warning' },
-  { label: "Today's bookings", value: 12, tone: 'info' },
-  { label: 'Open maintenance', value: 3, tone: 'danger' },
-  { label: 'Active closures', value: 1, tone: 'neutral' },
-]
-
-const RECENT_APPROVALS = [
-  { id: 1, facility: 'Community Hall A', requester: 'J. Tan', status: 'Pending' },
-  { id: 2, facility: 'Meeting Room D', requester: 'S. Ahmed', status: 'Approved' },
-  { id: 3, facility: 'Sports Court 1', requester: 'M. Lopez', status: 'Pending' },
-]
-
-const OPEN_ISSUES = [
-  { id: 1, facility: 'Sports Court 2', issue: 'Lighting fault', status: 'In progress' },
-  { id: 2, facility: 'Meeting Room B', issue: 'AC not cooling', status: 'Reported' },
-]
-
-const APPROVAL_TONE = { Pending: 'warning', Approved: 'success' }
-const ISSUE_TONE = { 'In progress': 'warning', Reported: 'danger' }
+const APPROVAL_TONE = { Pending: 'warning', Approved: 'success', Rejected: 'danger', Cancelled: 'neutral' }
+const ISSUE_TONE = { 'In Progress': 'warning', Pending: 'danger', Completed: 'success', Cancelled: 'neutral' }
 
 function Dashboard() {
+  const [stats, setStats] = useState(null)
+  const [recentApprovals, setRecentApprovals] = useState([])
+  const [openIssues, setOpenIssues] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/admin/dashboard'),
+      api.get('/bookings?status=Pending'),
+      api.get('/maintenance'),
+    ])
+      .then(([dashRes, bookingsRes, maintenanceRes]) => {
+        const d = dashRes.data
+        setStats([
+          { label: 'Pending approvals', value: d.pendingBookings, tone: 'warning' },
+          { label: 'Total bookings', value: d.facilities, tone: 'info' },
+          { label: 'Active maintenance', value: d.activeMaintenance, tone: 'danger' },
+          { label: 'Total users', value: d.users, tone: 'neutral' },
+        ])
+        setRecentApprovals(bookingsRes.data.slice(0, 5))
+        setOpenIssues(
+          maintenanceRes.data.filter((t) => t.status === 'Pending' || t.status === 'In Progress').slice(0, 5)
+        )
+      })
+      .catch(() => toast.error('Could not load dashboard data'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)' }}>Loading dashboard...</p>
+
   return (
     <div>
       <PageHeader title="Dashboard" description="Overview of today's activity across CoastLink facilities." />
@@ -31,22 +45,24 @@ function Dashboard() {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
         gap: 'var(--space-md)', marginBottom: 'var(--space-xl)',
       }}>
-        {STATS.map((s) => <StatCard key={s.label} {...s} />)}
+        {stats && stats.map((s) => <StatCard key={s.label} {...s} />)}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-lg)' }}>
         <Card>
           <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: '0 0 var(--space-md)' }}>
-            Recent approvals
+            Pending approvals
           </h2>
-          {RECENT_APPROVALS.map((a) => (
-            <div key={a.id} style={{
+          {recentApprovals.length === 0 ? (
+            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>No pending approvals.</p>
+          ) : recentApprovals.map((a) => (
+            <div key={a._id} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: 'var(--space-sm) 0', borderBottom: '1px solid var(--color-border)', fontSize: 'var(--font-size-sm)',
             }}>
               <div>
-                <div style={{ color: 'var(--color-text)' }}>{a.facility}</div>
-                <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>{a.requester}</div>
+                <div style={{ color: 'var(--color-text)' }}>{a.facility?.name ?? 'Unknown facility'}</div>
+                <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>{a.user?.name ?? 'Unknown user'}</div>
               </div>
               <StatusBadge label={a.status} tone={APPROVAL_TONE[a.status]} />
             </div>
@@ -57,14 +73,16 @@ function Dashboard() {
           <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: '0 0 var(--space-md)' }}>
             Open maintenance
           </h2>
-          {OPEN_ISSUES.map((i) => (
-            <div key={i.id} style={{
+          {openIssues.length === 0 ? (
+            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>No open issues.</p>
+          ) : openIssues.map((i) => (
+            <div key={i._id} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: 'var(--space-sm) 0', borderBottom: '1px solid var(--color-border)', fontSize: 'var(--font-size-sm)',
             }}>
               <div>
-                <div style={{ color: 'var(--color-text)' }}>{i.facility}</div>
-                <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>{i.issue}</div>
+                <div style={{ color: 'var(--color-text)' }}>{i.facility?.name ?? 'Unknown facility'}</div>
+                <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>{i.description}</div>
               </div>
               <StatusBadge label={i.status} tone={ISSUE_TONE[i.status]} />
             </div>

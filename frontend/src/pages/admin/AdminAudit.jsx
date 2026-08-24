@@ -1,20 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '../../lib/axios'
 import { PageHeader, Card, tableStyles } from '../../components/ui'
-
-// TODO: replace with GET /api/audit-log
-const LOG_ENTRIES = [
-  { id: 1, timestamp: '17 Aug, 3:42 PM', user: 'S. Ahmed', action: 'Booking approved', target: 'Community Hall A' },
-  { id: 2, timestamp: '17 Aug, 2:10 PM', user: 'J. Tan', action: 'Booking created', target: 'Meeting Room D' },
-  { id: 3, timestamp: '16 Aug, 11:05 AM', user: 'D. Park', action: 'Closure scheduled', target: 'Sports Court 2' },
-  { id: 4, timestamp: '15 Aug, 9:30 AM', user: 'M. Lopez', action: 'Booking cancelled', target: 'Sports Court 1' },
-]
+import toast from 'react-hot-toast'
 
 function AuditLog() {
+  const [logs, setLogs] = useState([])
   const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(true)
 
-  const filtered = LOG_ENTRIES.filter((e) =>
-    `${e.user} ${e.action} ${e.target}`.toLowerCase().includes(query.toLowerCase())
+  useEffect(() => {
+    api.get('/audit-log')
+      .then(({ data }) => setLogs(data))
+      .catch(() => toast.error('Could not load audit log'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filtered = logs.filter((e) =>
+    `${e.principal?.name ?? ''} ${e.action} ${e.details ?? ''}`.toLowerCase().includes(query.toLowerCase())
   )
+
+  if (loading) return <p>Loading...</p>
 
   return (
     <div>
@@ -43,20 +48,23 @@ function AuditLog() {
                 <th style={tableStyles.th}>Timestamp</th>
                 <th style={tableStyles.th}>User</th>
                 <th style={tableStyles.th}>Action</th>
-                <th style={tableStyles.th}>Target</th>
+                <th style={tableStyles.th}>Details</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((e) => (
-                <tr key={e.id}>
-                  <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{e.timestamp}</td>
-                  <td style={tableStyles.td}>{e.user}</td>
+                <tr key={e._id}>
+                  <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>
+                    {new Date(e.createdAt).toLocaleString()}
+                  </td>
+                  <td style={tableStyles.td}>{e.principal?.name ?? '—'}</td>
                   <td style={tableStyles.td}>{e.action}</td>
-                  <td style={tableStyles.td}>{e.target}</td>
+                  <td style={tableStyles.td}>{e.details ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {filtered.length === 0 && <p style={{ padding: '16px', color: 'var(--color-text-muted)' }}>No log entries found.</p>}
         </div>
       </Card>
     </div>

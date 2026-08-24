@@ -1,32 +1,54 @@
-import { useState } from 'react'
-import { PageHeader, Card, Button, EmptyState, inputStyle, labelStyle } from '../../components/ui'
-
-// TODO: replace with GET /api/facilities (for the select options)
-const FACILITIES = ['Community Hall A', 'Meeting Room B', 'Sports Court 2']
+import { useState, useEffect } from 'react'
+import api from '../../lib/axios'
+import { PageHeader, Card, StatusBadge, Button, tableStyles, inputStyle, labelStyle } from '../../components/ui'
+import toast from 'react-hot-toast'
 
 function FacilityClosures() {
+  const [facilities, setFacilities] = useState([])
+  const [closures, setClosures] = useState([])
   const [facility, setFacility] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [reason, setReason] = useState('')
-  const [affectedBookings, setAffectedBookings] = useState([])
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSchedule = (e) => {
-    e.preventDefault()
-    // TODO: POST /api/closures { facility, startDate, endDate, reason }
-    // Backend should return the bookings that fall inside the closure window —
-    // this mock stands in for that response so the panel isn't empty in the demo.
-    setAffectedBookings([
-      { id: 1, requester: 'J. Tan', date: '23 Aug, 2:00 PM' },
-      { id: 2, requester: 'M. Lopez', date: '24 Aug, 4:00 PM' },
+  useEffect(() => {
+    Promise.all([
+      api.get('/facilities'),
+      api.get('/closures'),
     ])
+      .then(([facilitiesRes, closuresRes]) => {
+        setFacilities(facilitiesRes.data)
+        setClosures(closuresRes.data)
+      })
+      .catch(() => toast.error('Could not load data'))
+  }, [])
+
+  const handleSchedule = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const { data } = await api.post('/closures', { facility, startDate, endDate, reason })
+      setClosures((prev) => [data, ...prev])
+      toast.success('Closure scheduled successfully!')
+      setFacility('')
+      setStartDate('')
+      setEndDate('')
+      setReason('')
+    } catch {
+      toast.error('Could not schedule closure')
+    } finally {
+      setSubmitting(false)
+    }
   }
+
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
   return (
     <div>
-      <PageHeader title="Facility closures" description="Schedule a temporary closure and manage any affected bookings." />
+      <PageHeader title="Facility closures" description="Schedule temporary closures and view all scheduled periods." />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)', marginBottom: 'var(--space-xl)' }}>
         <Card>
           <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: '0 0 var(--space-md)' }}>
             Schedule a closure
@@ -36,7 +58,7 @@ function FacilityClosures() {
               Facility
               <select value={facility} onChange={(e) => setFacility(e.target.value)} style={inputStyle} required>
                 <option value="">Select facility</option>
-                {FACILITIES.map((f) => <option key={f}>{f}</option>)}
+                {facilities.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
               </select>
             </label>
 
@@ -59,32 +81,45 @@ function FacilityClosures() {
               />
             </label>
 
-            <Button type="submit" variant="danger">Schedule closure</Button>
+            <Button type="submit" variant="danger" disabled={submitting}>
+              {submitting ? 'Scheduling...' : 'Schedule closure'}
+            </Button>
           </form>
         </Card>
 
-        <Card>
-          <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: '0 0 var(--space-md)' }}>
-            Affected bookings
-          </h2>
-          {affectedBookings.length === 0 ? (
-            <EmptyState message="Schedule a closure to see affected bookings here." />
+        <Card style={{ padding: 0 }}>
+          <div style={{ padding: 'var(--space-md) var(--space-lg)', borderBottom: '1px solid var(--color-border)' }}>
+            <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: 0 }}>
+              Scheduled closures
+            </h2>
+          </div>
+          {closures.length === 0 ? (
+            <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
+              No closures scheduled.
+            </p>
           ) : (
-            affectedBookings.map((b) => (
-              <div key={b.id} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: 'var(--space-sm) 0', borderBottom: '1px solid var(--color-border)', fontSize: 'var(--font-size-sm)',
-              }}>
-                <div>
-                  <div style={{ color: 'var(--color-text)' }}>{b.requester}</div>
-                  <div style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>{b.date}</div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <Button variant="secondary" style={{ padding: '6px 12px' }}>Rebook</Button>
-                  <Button variant="secondary" style={{ padding: '6px 12px' }}>Cancel</Button>
-                </div>
-              </div>
-            ))
+            <div style={tableStyles.wrapper}>
+              <table style={tableStyles.table}>
+                <thead>
+                  <tr>
+                    <th style={tableStyles.th}>Facility</th>
+                    <th style={tableStyles.th}>From</th>
+                    <th style={tableStyles.th}>To</th>
+                    <th style={tableStyles.th}>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {closures.map((c) => (
+                    <tr key={c._id}>
+                      <td style={tableStyles.td}>{c.facility?.name ?? '—'}</td>
+                      <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatDate(c.startDate)}</td>
+                      <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatDate(c.endDate)}</td>
+                      <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{c.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       </div>

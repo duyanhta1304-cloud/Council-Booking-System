@@ -1,12 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '../../lib/axios'
 import { PageHeader, Card, Badge, tableStyles, inputStyle, buttonStyle } from '../../components/ui'
-
-// TODO: replace with GET /api/staff/maintenance-tasks
-const INITIAL_TASKS = [
-  { id: 1, facility: 'Sports Court 2', issue: 'Cracked flooring near net', priority: 'High', status: 'Open' },
-  { id: 2, facility: 'Community Hall A', issue: 'Flickering lights in hallway', priority: 'Medium', status: 'In progress' },
-  { id: 3, facility: 'Meeting Room D', issue: 'Projector not turning on', priority: 'Low', status: 'Open' },
-]
+import toast from 'react-hot-toast'
 
 function priorityTone(priority) {
   if (priority === 'High') return 'danger'
@@ -16,25 +11,37 @@ function priorityTone(priority) {
 
 function statusTone(status) {
   if (status === 'Completed') return 'success'
-  if (status === 'In progress') return 'warning'
+  if (status === 'In Progress') return 'warning'
   return 'default'
 }
 
 function StaffMaintenance() {
-  const [tasks, setTasks] = useState(INITIAL_TASKS)
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
 
-  function markInProgress(id) {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'In progress' } : t)))
-  }
+  useEffect(() => {
+    api.get('/staff/maintenance-tasks')
+      .then(({ data }) => setTasks(data))
+      .catch(() => toast.error('Could not load maintenance tasks'))
+      .finally(() => setLoading(false))
+  }, [])
 
-  function markCompleted(id) {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'Completed' } : t)))
+  async function updateStatus(id, newStatus) {
+    try {
+      const { data } = await api.patch(`/maintenance/${id}`, { status: newStatus })
+      setTasks((prev) => prev.map((t) => (t._id === id ? data : t)))
+      toast.success(`Task marked as ${newStatus}`)
+    } catch {
+      toast.error('Could not update task status')
+    }
   }
 
   const filtered = tasks.filter((t) =>
-    `${t.facility} ${t.issue} ${t.priority} ${t.status}`.toLowerCase().includes(query.toLowerCase())
+    `${t.facility?.name} ${t.description} ${t.priority} ${t.status}`.toLowerCase().includes(query.toLowerCase())
   )
+
+  if (loading) return <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)' }}>Loading...</p>
 
   return (
     <div>
@@ -65,27 +72,33 @@ function StaffMaintenance() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t) => (
-                <tr key={t.id}>
-                  <td style={tableStyles.td}>{t.facility}</td>
-                  <td style={tableStyles.td}>{t.issue}</td>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ ...tableStyles.td, textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                    No tasks assigned to you.
+                  </td>
+                </tr>
+              ) : filtered.map((t) => (
+                <tr key={t._id}>
+                  <td style={tableStyles.td}>{t.facility?.name ?? '—'}</td>
+                  <td style={tableStyles.td}>{t.description}</td>
                   <td style={tableStyles.td}>
-                    <Badge tone={priorityTone(t.priority)}>{t.priority}</Badge>
+                    <Badge tone={priorityTone(t.priority)}>{t.priority ?? 'Medium'}</Badge>
                   </td>
                   <td style={tableStyles.td}>
                     <Badge tone={statusTone(t.status)}>{t.status}</Badge>
                   </td>
                   <td style={tableStyles.td}>
                     <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-                      {t.status === 'Open' && (
-                        <button style={buttonStyle} onClick={() => markInProgress(t.id)}>
+                      {t.status === 'Pending' && (
+                        <button style={buttonStyle} onClick={() => updateStatus(t._id, 'In Progress')}>
                           Start
                         </button>
                       )}
-                      {t.status !== 'Completed' && (
+                      {(t.status === 'Pending' || t.status === 'In Progress') && (
                         <button
                           style={{ ...buttonStyle, backgroundColor: 'var(--color-secondary)' }}
-                          onClick={() => markCompleted(t.id)}
+                          onClick={() => updateStatus(t._id, 'Completed')}
                         >
                           Complete
                         </button>

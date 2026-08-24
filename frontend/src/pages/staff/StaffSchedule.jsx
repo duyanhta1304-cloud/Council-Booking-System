@@ -1,15 +1,21 @@
+import { useState, useEffect } from 'react'
+import api from '../../lib/axios'
 import { PageHeader, Card, tableStyles } from '../../components/ui'
-
-// TODO: replace with GET /api/staff/schedule
-const SCHEDULE = [
-  { id: 1, day: 'Monday', date: '18 Aug', shift: '8:00 AM – 4:00 PM', assignment: 'Front desk + bookings' },
-  { id: 2, day: 'Tuesday', date: '19 Aug', shift: '8:00 AM – 4:00 PM', assignment: 'Maintenance rounds' },
-  { id: 3, day: 'Wednesday', date: '20 Aug', shift: 'Off', assignment: '—' },
-  { id: 4, day: 'Thursday', date: '21 Aug', shift: '10:00 AM – 6:00 PM', assignment: 'Facility inspections' },
-  { id: 5, day: 'Friday', date: '22 Aug', shift: '8:00 AM – 4:00 PM', assignment: 'Front desk + bookings' },
-]
+import toast from 'react-hot-toast'
 
 function StaffSchedule() {
+  const [schedule, setSchedule] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get('/staff/schedule')
+      .then(({ data }) => setSchedule(data))
+      .catch(() => toast.error('Could not load schedule'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)' }}>Loading...</p>
+
   return (
     <div>
       <PageHeader
@@ -17,30 +23,38 @@ function StaffSchedule() {
         description="Your shifts and assignments for the week."
       />
 
-      <Card style={{ padding: 0 }}>
-        <div style={tableStyles.wrapper}>
-          <table style={tableStyles.table}>
-            <thead>
-              <tr>
-                <th style={tableStyles.th}>Day</th>
-                <th style={tableStyles.th}>Date</th>
-                <th style={tableStyles.th}>Shift</th>
-                <th style={tableStyles.th}>Assignment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SCHEDULE.map((s) => (
-                <tr key={s.id}>
-                  <td style={{ ...tableStyles.td, fontWeight: 'var(--font-weight-medium)' }}>{s.day}</td>
-                  <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{s.date}</td>
-                  <td style={tableStyles.td}>{s.shift}</td>
-                  <td style={tableStyles.td}>{s.assignment}</td>
+      {schedule.length === 0 ? (
+        <Card>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', textAlign: 'center', padding: 'var(--space-lg) 0' }}>
+            No schedule has been assigned to you yet. Check back later or contact your manager.
+          </p>
+        </Card>
+      ) : (
+        <Card style={{ padding: 0 }}>
+          <div style={tableStyles.wrapper}>
+            <table style={tableStyles.table}>
+              <thead>
+                <tr>
+                  <th style={tableStyles.th}>Day</th>
+                  <th style={tableStyles.th}>Date</th>
+                  <th style={tableStyles.th}>Shift</th>
+                  <th style={tableStyles.th}>Assignment</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {schedule.map((s) => (
+                  <tr key={s.id ?? s._id}>
+                    <td style={{ ...tableStyles.td, fontWeight: 'var(--font-weight-medium)' }}>{s.day}</td>
+                    <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{s.date}</td>
+                    <td style={tableStyles.td}>{s.shift}</td>
+                    <td style={tableStyles.td}>{s.assignment}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

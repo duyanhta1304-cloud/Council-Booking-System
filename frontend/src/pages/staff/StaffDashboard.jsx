@@ -1,26 +1,40 @@
+import { useState, useEffect } from 'react'
+import api from '../../lib/axios'
 import { PageHeader, Card, StatCard, Badge, tableStyles } from '../../components/ui'
-
-// TODO: replace with GET /api/staff/dashboard
-const STATS = [
-  { label: "Today's bookings", value: 8, tone: 'default' },
-  { label: 'Pending maintenance', value: 3, tone: 'warning' },
-  { label: 'Overdue tasks', value: 1, tone: 'danger' },
-  { label: 'Completed this week', value: 12, tone: 'success' },
-]
-
-const UPCOMING_BOOKINGS = [
-  { id: 1, time: '9:00 AM', facility: 'Community Hall A', resident: 'S. Ahmed', status: 'Confirmed' },
-  { id: 2, time: '11:30 AM', facility: 'Meeting Room D', resident: 'J. Tan', status: 'Confirmed' },
-  { id: 3, time: '2:00 PM', facility: 'Sports Court 2', resident: 'D. Park', status: 'Pending' },
-]
+import toast from 'react-hot-toast'
 
 function statusTone(status) {
-  if (status === 'Confirmed') return 'success'
+  if (status === 'Approved') return 'success'
   if (status === 'Pending') return 'warning'
+  if (status === 'Cancelled' || status === 'Rejected') return 'danger'
   return 'default'
 }
 
 function StaffDashboard() {
+  const [stats, setStats] = useState(null)
+  const [todaysBookings, setTodaysBookings] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get('/staff/dashboard')
+      .then(({ data }) => {
+        const s = data.stats || {}
+        setStats([
+          { label: "Today's bookings", value: s.todaysBookings ?? 0, tone: 'default' },
+          { label: 'Pending maintenance', value: s.pendingMaintenance ?? 0, tone: 'warning' },
+          { label: 'Overdue tasks', value: s.overdueTasks ?? 0, tone: 'danger' },
+          { label: 'Completed this week', value: s.completedThisWeek ?? 0, tone: 'success' },
+        ])
+        setTodaysBookings(data.todaysBookings || [])
+      })
+      .catch(() => toast.error('Could not load dashboard'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const formatTime = (d) => new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+
+  if (loading) return <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)' }}>Loading dashboard...</p>
+
   return (
     <div>
       <PageHeader
@@ -29,7 +43,7 @@ function StaffDashboard() {
       />
 
       <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', marginBottom: 'var(--space-lg)' }}>
-        {STATS.map((s) => (
+        {stats && stats.map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
         ))}
       </div>
@@ -40,30 +54,36 @@ function StaffDashboard() {
             Today's bookings
           </h2>
         </div>
-        <div style={tableStyles.wrapper}>
-          <table style={tableStyles.table}>
-            <thead>
-              <tr>
-                <th style={tableStyles.th}>Time</th>
-                <th style={tableStyles.th}>Facility</th>
-                <th style={tableStyles.th}>Resident</th>
-                <th style={tableStyles.th}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {UPCOMING_BOOKINGS.map((b) => (
-                <tr key={b.id}>
-                  <td style={tableStyles.td}>{b.time}</td>
-                  <td style={tableStyles.td}>{b.facility}</td>
-                  <td style={tableStyles.td}>{b.resident}</td>
-                  <td style={tableStyles.td}>
-                    <Badge tone={statusTone(b.status)}>{b.status}</Badge>
-                  </td>
+        {todaysBookings.length === 0 ? (
+          <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
+            No bookings today.
+          </p>
+        ) : (
+          <div style={tableStyles.wrapper}>
+            <table style={tableStyles.table}>
+              <thead>
+                <tr>
+                  <th style={tableStyles.th}>Time</th>
+                  <th style={tableStyles.th}>Facility</th>
+                  <th style={tableStyles.th}>Resident</th>
+                  <th style={tableStyles.th}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {todaysBookings.map((b) => (
+                  <tr key={b._id}>
+                    <td style={tableStyles.td}>{formatTime(b.startTime)}</td>
+                    <td style={tableStyles.td}>{b.facility?.name ?? '—'}</td>
+                    <td style={tableStyles.td}>{b.user?.name ?? '—'}</td>
+                    <td style={tableStyles.td}>
+                      <Badge tone={statusTone(b.status)}>{b.status}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   )

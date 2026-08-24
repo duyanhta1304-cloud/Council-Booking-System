@@ -8,7 +8,7 @@ const roomSchema = mongoose.Schema(
         },
         capacity: {
             type: Number,
-            require: true,
+            required: true,
         }
     }
 );
@@ -40,5 +40,5 @@ const facilitiesSchema = mongoose.Schema(
     }
 );
 
-const Facility = new mongoose.model("Facility","facilitiesSchema");
+const Facility = mongoose.model("Facility",facilitiesSchema);
 export default Facility;

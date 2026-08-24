@@ -1,0 +1,314 @@
+{
+  "info": {
+    "name": "Council Booking System API",
+    "description": "Postman collection for testing all endpoints in the Council Booking System.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001/api",
+      "type": "string"
+    },
+    {
+      "key": "facilityId",
+      "value": "REPLACE_WITH_FACILITY_ID",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "REPLACE_WITH_BOOKING_ID",
+      "type": "string"
+    },
+    {
+      "key": "maintenanceId",
+      "value": "REPLACE_WITH_MAINTENANCE_ID",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Admin\",\n  \"email\": \"admin@test.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@test.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Facilities",
+      "item": [
+        {
+          "name": "Get All Facilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/facilities", "host": ["{{baseUrl}}"], "path": ["facilities"] }
+          }
+        },
+        {
+          "name": "Create Facility",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Community Hall A\",\n  \"description\": \"A large hall for community events\",\n  \"status\": \"Active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/facilities", "host": ["{{baseUrl}}"], "path": ["facilities"] }
+          }
+        },
+        {
+          "name": "Update Facility Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Inactive\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/facilities/{{facilityId}}", "host": ["{{baseUrl}}"], "path": ["facilities", "{{facilityId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Bookings",
+      "item": [
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facility\": \"{{facilityId}}\",\n  \"startTime\": \"2026-09-01T10:00:00.000Z\",\n  \"endTime\": \"2026-09-01T14:00:00.000Z\",\n  \"purpose\": \"Community Meeting\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/bookings", "host": ["{{baseUrl}}"], "path": ["bookings"] }
+          }
+        },
+        {
+          "name": "Get All Bookings (Admin/Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/bookings?status=Pending", "host": ["{{baseUrl}}"], "path": ["bookings"], "query": [{ "key": "status", "value": "Pending" }] }
+          }
+        },
+        {
+          "name": "Approve Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/bookings/{{bookingId}}/approve", "host": ["{{baseUrl}}"], "path": ["bookings", "{{bookingId}}", "approve"] }
+          }
+        },
+        {
+          "name": "Reject Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/bookings/{{bookingId}}/reject", "host": ["{{baseUrl}}"], "path": ["bookings", "{{bookingId}}", "reject"] }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/bookings/{{bookingId}}/cancel", "host": ["{{baseUrl}}"], "path": ["bookings", "{{bookingId}}", "cancel"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Closures",
+      "item": [
+        {
+          "name": "Get All Closures",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/closures", "host": ["{{baseUrl}}"], "path": ["closures"] }
+          }
+        },
+        {
+          "name": "Schedule Closure",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facility\": \"{{facilityId}}\",\n  \"startDate\": \"2026-09-10T00:00:00.000Z\",\n  \"endDate\": \"2026-09-15T00:00:00.000Z\",\n  \"reason\": \"Roof Maintenance\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/closures", "host": ["{{baseUrl}}"], "path": ["closures"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Maintenance",
+      "item": [
+        {
+          "name": "Get All Maintenance Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/maintenance", "host": ["{{baseUrl}}"], "path": ["maintenance"] }
+          }
+        },
+        {
+          "name": "Report Issue",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facility\": \"{{facilityId}}\",\n  \"description\": \"Air conditioning not working\",\n  \"priority\": \"High\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/maintenance", "host": ["{{baseUrl}}"], "path": ["maintenance"] }
+          }
+        },
+        {
+          "name": "Update Maintenance Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"In Progress\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/maintenance/{{maintenanceId}}", "host": ["{{baseUrl}}"], "path": ["maintenance", "{{maintenanceId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Dashboards & Portals",
+      "item": [
+        {
+          "name": "Admin Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/admin/dashboard", "host": ["{{baseUrl}}"], "path": ["admin", "dashboard"] }
+          }
+        },
+        {
+          "name": "Staff Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/staff/dashboard", "host": ["{{baseUrl}}"], "path": ["staff", "dashboard"] }
+          }
+        },
+        {
+          "name": "Staff Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/staff/bookings", "host": ["{{baseUrl}}"], "path": ["staff", "bookings"] }
+          }
+        },
+        {
+          "name": "Staff Maintenance Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/staff/maintenance-tasks", "host": ["{{baseUrl}}"], "path": ["staff", "maintenance-tasks"] }
+          }
+        },
+        {
+          "name": "Staff Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/staff/schedule", "host": ["{{baseUrl}}"], "path": ["staff", "schedule"] }
+          }
+        },
+        {
+          "name": "Resident Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/resident/dashboard", "host": ["{{baseUrl}}"], "path": ["resident", "dashboard"] }
+          }
+        },
+        {
+          "name": "Resident Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/resident/bookings", "host": ["{{baseUrl}}"], "path": ["resident", "bookings"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Logs & Reports",
+      "item": [
+        {
+          "name": "Get Audit Log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/audit-log", "host": ["{{baseUrl}}"], "path": ["audit-log"] }
+          }
+        },
+        {
+          "name": "Get Utilisation Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/reports/utilisation?range=30", "host": ["{{baseUrl}}"], "path": ["reports", "utilisation"], "query": [{ "key": "range", "value": "30" }] }
+          }
+        }
+      ]
+    }
+  ]
+}
