@@ -6,10 +6,22 @@ import toast from 'react-hot-toast'
 const COLUMNS = ['Pending', 'In Progress', 'Completed', 'Cancelled']
 const COLUMN_TONE = { Pending: 'danger', 'In Progress': 'warning', Completed: 'success', Cancelled: 'neutral' }
 
-function ReportIssueModal({ facilities, onClose, onCreated }) {
+// Shared by the assignee dropdown and its read-only twin on completed tasks,
+// so a card keeps the same shape once it stops being editable.
+const assigneeFieldStyle = (assignedTo) => ({
+  ...inputStyle,
+  width: '100%',
+  padding: '4px 6px',
+  marginBottom: '8px',
+  fontSize: 'var(--font-size-xs)',
+  color: assignedTo ? 'var(--color-text)' : 'var(--color-text-muted)',
+})
+
+function ReportIssueModal({ facilities, staff, onClose, onCreated }) {
   const [facilityId, setFacilityId] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('Medium')
+  const [assignedTo, setAssignedTo] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -20,6 +32,7 @@ function ReportIssueModal({ facilities, onClose, onCreated }) {
         facility: facilityId,
         description,
         priority,
+        assignedTo: assignedTo || undefined,
         date: new Date().toISOString(),
       })
       toast.success('Maintenance issue reported!')
@@ -64,6 +77,13 @@ function ReportIssueModal({ facilities, onClose, onCreated }) {
               <option value="High">High</option>
             </select>
           </label>
+          <label style={labelStyle}>
+            Assign to
+            <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} style={{ ...inputStyle, marginTop: '4px' }}>
+              <option value="">Unassigned</option>
+              {staff.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+            </select>
+          </label>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-sm)' }}>
             <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-strong)', backgroundColor: 'transparent', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
               Cancel
@@ -81,6 +101,7 @@ function ReportIssueModal({ facilities, onClose, onCreated }) {
 function MaintenanceBoard() {
   const [tasks, setTasks] = useState([])
   const [facilities, setFacilities] = useState([])
+  const [staff, setStaff] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
 
@@ -88,14 +109,26 @@ function MaintenanceBoard() {
     Promise.all([
       api.get('/maintenance'),
       api.get('/facilities'),
+      api.get('/admin/staff'),
     ])
-      .then(([maintenanceRes, facilitiesRes]) => {
+      .then(([maintenanceRes, facilitiesRes, staffRes]) => {
         setTasks(maintenanceRes.data)
         setFacilities(facilitiesRes.data)
+        setStaff(staffRes.data)
       })
       .catch(() => toast.error('Could not load maintenance tasks'))
       .finally(() => setLoading(false))
   }, [])
+
+  const assign = async (id, staffId) => {
+    try {
+      const { data } = await api.patch(`/maintenance/${id}`, { assignedTo: staffId || null })
+      setTasks((prev) => prev.map((t) => (t._id === id ? data : t)))
+      toast.success(staffId ? `Assigned to ${data.assignedTo?.name}` : 'Assignment cleared')
+    } catch {
+      toast.error('Could not assign task')
+    }
+  }
 
   const advance = async (id, currentStatus) => {
     const idx = COLUMNS.indexOf(currentStatus)
@@ -142,8 +175,25 @@ function MaintenanceBoard() {
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
                     {t.description}
                   </div>
+
+                  {t.status == 'Completed' ? (
+                    <div style={assigneeFieldStyle(t.assignedTo)}>
+                      {t.assignedTo?.name ?? 'Unassigned'}
+                    </div>
+                  ) : (
+                    <select
+                      value={t.assignedTo?._id ?? ''}
+                      onChange={(e) => assign(t._id, e.target.value)}
+                      style={assigneeFieldStyle(t.assignedTo)}
+                    >
+                      <option value="">Unassigned</option>
+                      {staff.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                    </select>
+                  )}
+
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <StatusBadge label={t.assignedTo?.name ?? 'Unassigned'} tone={COLUMN_TONE[col]} />
+                    <StatusBadge label={col} tone={COLUMN_TONE[col]} />
                     {col !== 'Completed' && col !== 'Cancelled' && (
                       <button
                         onClick={() => advance(t._id, t.status)}
@@ -163,6 +213,7 @@ function MaintenanceBoard() {
       {showModal && (
         <ReportIssueModal
           facilities={facilities}
+          staff={staff}
           onClose={() => setShowModal(false)}
           onCreated={(newTask) => setTasks((prev) => [newTask, ...prev])}
         />

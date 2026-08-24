@@ -5,10 +5,10 @@ import authMiddleware, { requireRole } from "../middleware/auth.js";
 const router = express.Router();
 
 // GET request to /api/closures — list all closures (admin & staff)
-router.get("/", authMiddleware, requireRole("admin", "staff"), getClosures);
+router.get("/", authMiddleware, getClosures);
 
 // POST request to /api/closures
 // Only Admins (and maybe Staff) should be able to schedule closures
-router.post("/", authMiddleware, requireRole("admin", "staff"), createClosure);
+router.post("/", authMiddleware, createClosure);
 
-export default router;
+export default router;

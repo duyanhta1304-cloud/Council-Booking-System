@@ -12,6 +12,16 @@ export async function getAdminDashboard(req, res) {
         res.json({ users, facilities, pendingBookings, activeMaintenance });
     } catch(err) { res.status(500).json({message:"Error"}); }
 }
+// Staff members an admin can assign maintenance work to.
+export async function getStaffMembers(req, res) {
+    try {
+        const staff = await User.find({ role: "staff" })
+            .select("name email")
+            .sort({ name: 1 });
+        res.json(staff);
+    } catch(err) { res.status(500).json({message:"Error fetching staff members"}); }
+}
+
 export async function getStaffDashboard(req, res) {
     try {
         const now = new Date();

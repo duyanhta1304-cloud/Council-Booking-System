@@ -23,20 +23,26 @@ const PORT = process.env.PORT || 5001
 // Needed so req.ip is the real client address behind a proxy (rate limiting).
 app.set("trust proxy", 1)
 
+// FRONTEND_URL may hold several comma-separated origins, so the same server
+// can serve http://localhost:5173 and the LAN address other devices use.
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
 //middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true // required for the httpOnly auth cookie
 }));
 
 app.use(express.json())
 app.use(cookieParser())
-app.use(rateLimiter)
 
-app.use("/api/auth", authRoute)
+app.use("/api/auth", rateLimiter, authRoute)
 app.use("/api/facilities", facilityRoute)
 app.use("/api/closures", closureRoute);
-app.use("/api/bookings", bookingRoute);
+app.use("/api/bookings", rateLimiter, bookingRoute);
 app.use("/api/maintenance", maintenanceRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/staff", staffRoute);

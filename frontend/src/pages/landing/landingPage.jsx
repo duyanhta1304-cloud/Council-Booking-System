@@ -74,11 +74,11 @@ function LandingPage() {
                     What would you like to do?
                 </h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-lg)' }}>
-                    <QuickActionCard to="/search" icon={<SearchIcon />} title="Find a facility"
+                    <QuickActionCard to="/resident/facilities" icon={<SearchIcon />} title="Find a facility"
                         description="Browse halls, rooms and courts near you and check availability." />
-                    <QuickActionCard to="/my-bookings" icon={<CalendarIcon />} title="Manage my bookings"
+                    <QuickActionCard to="/resident/bookings" icon={<CalendarIcon />} title="Manage my bookings"
                         description="View, change or cancel a booking you've already made." />
-                    <QuickActionCard to="/help" icon={<HelpIcon />} title="Get help booking"
+                    <QuickActionCard href="#support" icon={<HelpIcon />} title="Get help booking"
                         description="Step-by-step guidance, or call our customer service team directly." />
                 </div>
             </section>
@@ -90,7 +90,7 @@ function LandingPage() {
                 </h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-md)' }}>
                     {FEATURED_FACILITIES.map((f) => (
-                        <Link key={f.id} to={`/details/${f.id}`} style={{ textDecoration: 'none' }}>
+                        <Link key={f.id} to="/resident/facilities" style={{ textDecoration: 'none' }}>
                             <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', backgroundColor: 'var(--color-surface)' }}>
                                 <ImagePlaceholder label={f.category} height="120px" borderRadius="0" />
                                 <div style={{ padding: 'var(--space-md)' }}>
@@ -123,7 +123,7 @@ function LandingPage() {
             </section>
 
             {/* Support footer note */}
-            <section style={{ padding: 'var(--space-xl) var(--space-lg)', textAlign: 'center' }}>
+            <section id="support" style={{ padding: 'var(--space-xl) var(--space-lg)', textAlign: 'center' }}>
                 <p style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text-secondary)', maxWidth: '560px', margin: '0 auto' }}>
                     Prefer to book by phone? Call our Customer Service team on{' '}
                     <strong style={{ color: 'var(--color-text)' }}>[placeholder phone number]</strong>,
@@ -134,9 +134,9 @@ function LandingPage() {
     )
 }
 
-function QuickActionCard({ to, icon, title, description }) {
-    return (
-        <Link to={to} style={{ textDecoration: 'none' }}>
+// `to` routes within the app; `href` is for in-page anchors like #support.
+function QuickActionCard({ to, href, icon, title, description }) {
+    const card = (
             <div style={{
                 border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)',
                 padding: 'var(--space-lg)', backgroundColor: 'var(--color-surface)',
@@ -148,8 +148,11 @@ function QuickActionCard({ to, icon, title, description }) {
                     {description}
                 </p>
             </div>
-        </Link>
     )
+
+    return to
+        ? <Link to={to} style={{ textDecoration: 'none' }}>{card}</Link>
+        : <a href={href} style={{ textDecoration: 'none' }}>{card}</a>
 }
 
 function Step({ number, title, description }) {
