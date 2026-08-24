@@ -1,15 +1,13 @@
 import { useNavigate } from "react-router"
 import { useAuth } from "../context/authContext"
-import { googleLogout } from '@react-oauth/google'
 import { useState } from "react"
 import { DetailRow, formatAddress } from "./ui"
 export function LogoutButton({ style, onLogout }) {
     const navigate = useNavigate()
     const { logout } = useAuth()
 
-    const handleLogout = () => {
-        googleLogout()
-        logout()
+    const handleLogout = async () => {
+        await logout()
 
         if (onLogout) {
             onLogout()
@@ -35,6 +33,105 @@ export function LogoutButton({ style, onLogout }) {
         >
             Log out
         </button>
+    )
+}
+
+export function DeleteAccountButton({ style, onDeleted }) {
+    const navigate = useNavigate()
+    const { deleteAccount } = useAuth()
+
+    const [confirming, setConfirming] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+    const [error, setError] = useState('')
+
+    const handleDelete = async () => {
+        setError('')
+        setDeleting(true)
+
+        try {
+            await deleteAccount()
+
+            if (onDeleted) {
+                onDeleted()
+            }
+
+            navigate('/login', { replace: true })
+        } catch (err) {
+            setError(err.message)
+            setDeleting(false)
+            setConfirming(false)
+        }
+    }
+
+    const baseStyle = {
+        width: '100%',
+        background: 'transparent',
+        border: '1px solid var(--color-danger)',
+        color: 'var(--color-danger)',
+        padding: '8px 16px',
+        borderRadius: 'var(--radius-md)',
+        fontSize: 'var(--font-size-sm)',
+        cursor: 'pointer',
+        ...style,
+    }
+
+    if (!confirming) {
+        return (
+            <div style={{ width: '100%' }}>
+                <button type="button" onClick={() => setConfirming(true)} style={baseStyle}>
+                    Delete account
+                </button>
+
+                {error && (
+                    <p style={{ marginTop: '6px', fontSize: 'var(--font-size-xs)', color: 'var(--color-danger-text)' }}>
+                        {error}
+                    </p>
+                )}
+            </div>
+        )
+    }
+
+    return (
+        <div style={{ width: '100%' }}>
+            <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginBottom: '6px' }}>
+                This permanently deletes your account. It cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    style={{
+                        ...baseStyle,
+                        backgroundColor: 'var(--color-danger)',
+                        color: 'var(--color-text-on-dark)',
+                        cursor: deleting ? 'not-allowed' : 'pointer',
+                        opacity: deleting ? 0.7 : 1,
+                    }}
+                >
+                    {deleting ? 'Deleting…' : 'Yes, delete it'}
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setConfirming(false)}
+                    disabled={deleting}
+                    style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text)',
+                        padding: '8px 16px',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: 'var(--font-size-sm)',
+                        cursor: 'pointer',
+                    }}
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
     )
 }
 
@@ -291,6 +388,10 @@ export function UserProfileCard() {
                             </button>
 
                             <LogoutButton />
+                        </div>
+
+                        <div style={{ marginTop: 'var(--space-md)', paddingTop: 'var(--space-md)', borderTop: '1px solid var(--color-border)' }}>
+                            <DeleteAccountButton />
                         </div>
                     </div>
                 </div>

@@ -1,89 +1,125 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { jwtDecode } from 'jwt-decode'
 import { googleLogout } from '@react-oauth/google'
 import api from '../lib/axios'
 
 const AuthContext = createContext(null)
-const validRoles = ['admin', 'staff', 'resident']
+
+export const validRoles = ['admin', 'staff', 'resident']
+
+export const roleRoutes = {
+  admin: '/admin',
+  staff: '/staff',
+  resident: '/resident',
+}
+
+// Where a user should land after logging in.
+export function homePathFor(user) {
+  return roleRoutes[user?.role] ?? '/'
+}
+
+const STORAGE_KEY = 'coastlink_user'
+
+// localStorage is only a cache so the UI can render before /auth/me answers.
+// The httpOnly cookie is the real session and the server always wins.
+function readCachedUser() {
+  const cached = localStorage.getItem(STORAGE_KEY)
+
+  if (!cached) return null
+
+  try {
+    const parsed = JSON.parse(cached)
+    return validRoles.includes(parsed.role) ? parsed : null
+  } catch {
+    localStorage.removeItem(STORAGE_KEY)
+    return null
+  }
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(readCachedUser)
   const [loading, setLoading] = useState(true)
 
+  const storeUser = (nextUser) => {
+    setUser(nextUser)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser))
+    return nextUser
+  }
+
+  const clearUser = () => {
+    setUser(null)
+    localStorage.removeItem(STORAGE_KEY)
+  }
+
+  // Confirm the cached user against the session cookie on first load.
   useEffect(() => {
-    const stored = localStorage.getItem('coastlink_user')
+    let cancelled = false
 
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
+    api.get('/auth/me')
+      .then(({ data }) => {
+        if (!cancelled) storeUser(data.user)
+      })
+      .catch(() => {
+        if (!cancelled) clearUser()
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
 
-        const isExpired =
-          !parsed.exp || parsed.exp * 1000 < Date.now()
-
-        const hasValidRole =
-          validRoles.includes(parsed.role)
-
-        if (isExpired || !hasValidRole) {
-          localStorage.removeItem('coastlink_user')
-        } else {
-          setUser(parsed)
-        }
-      } catch (error) {
-        localStorage.removeItem('coastlink_user')
-      }
-    }
-
-    setLoading(false)
+    return () => { cancelled = true }
   }, [])
 
-  // Google OAuth login — unchanged
-  const login = (credentialResponse) => {
-    const decoded = jwtDecode(credentialResponse.credential)
-    setUser(decoded)
-    localStorage.setItem('coastlink_user', JSON.stringify(decoded))
-    setRole("admin")
-  }
-
-  // Email/password login or signup
-  // TODO: replace with real calls once the backend exists —
-  // POST /api/auth/login  { email, password }
-  // POST /api/auth/register { email, password }
-  // Express should verify (or create) the account and return a real user + token.
-  const loginWithCredentials = async ({ email, password, mode }) => {
-    try {
-      await api.post(`/login`, { email, password, mode })
-    } catch (error) {
-
-    }
-    // const mockUser = {
-    //   name: email.split('@')[0],
-    //   email,
-    //   picture: null,
-    //   exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // mock 24hr session
-    // }
-    // setUser(mockUser)
-    // localStorage.setItem('coastlink_user', JSON.stringify(mockUser))
-  }
-
-  const logout = () => {
-    googleLogout()
-    setUser(null)
-    localStorage.removeItem('coastlink_user')
-  }
-
-
-  // DEV ONLY DELETE THIS
-  const setRole = (role) => {
-    setUser((prev) => {
-      if (!prev) return prev
-      const updated = { ...prev, role }
-      localStorage.setItem('coastlink_user', JSON.stringify(updated))
-      return updated
+  // Google sign-in — the credential is verified by the backend, which then
+  // issues our own session cookie and returns the user record.
+  const login = async (credentialResponse) => {
+    const { data } = await api.post('/auth/google', {
+      credential: credentialResponse.credential,
     })
+    return storeUser(data.user)
+  }
+
+  // Email/password login or signup. Throws with a usable message on failure.
+  // accountType picks the role for a new account ('resident' | 'staff' | 'admin').
+  const loginWithCredentials = async ({ name, email, password, mode, accountType }) => {
+    const isSignup = mode === 'signup'
+
+    try {
+      const { data } = isSignup
+        ? await api.post('/auth/register', { name, email, password, accountType })
+        : await api.post('/auth/login', { email, password })
+
+      return storeUser(data.user)
+    } catch (error) {
+      const message =
+        error.response?.data?.message ??
+        (isSignup ? 'Could not create account. Please try again.' : 'Invalid email or password.')
+      throw new Error(message, { cause: error })
+    }
+  }
+
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Clear the client session regardless — the cookie expires on its own.
+    }
+    googleLogout()
+    clearUser()
+  }
+
+  // Permanently deletes the signed-in account, then drops the local session.
+  const deleteAccount = async () => {
+    try {
+      await api.delete('/auth/me')
+    } catch (error) {
+      throw new Error(error.response?.data?.message ?? 'Could not delete account.', { cause: error })
+    }
+
+    googleLogout()
+    clearUser()
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithCredentials, logout, setRole, isAuthenticated: !!user, loading }}>
+    <AuthContext.Provider value={{ user, login, loginWithCredentials, logout, deleteAccount, isAuthenticated: !!user, loading }}>
       {children}
     </AuthContext.Provider>
   )
