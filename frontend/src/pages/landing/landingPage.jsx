@@ -74,11 +74,11 @@ function LandingPage() {
                     What would you like to do?
                 </h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-lg)' }}>
-                    <QuickActionCard to="/search" icon={<SearchIcon />} title="Find a facility"
+                    <QuickActionCard to="/resident/facilities" icon={<SearchIcon />} title="Find a facility"
                         description="Browse halls, rooms and courts near you and check availability." />
-                    <QuickActionCard to="/my-bookings" icon={<CalendarIcon />} title="Manage my bookings"
+                    <QuickActionCard to="/resident/bookings" icon={<CalendarIcon />} title="Manage my bookings"
                         description="View, change or cancel a booking you've already made." />
-                    <QuickActionCard to="/help" icon={<HelpIcon />} title="Get help booking"
+                    <QuickActionCard href="#support" icon={<HelpIcon />} title="Get help booking"
                         description="Step-by-step guidance, or call our customer service team directly." />
                 </div>
             </section>

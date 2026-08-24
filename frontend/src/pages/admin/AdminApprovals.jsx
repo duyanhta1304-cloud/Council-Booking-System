@@ -16,7 +16,7 @@ function ApprovalsQueue() {
 
   const respond = async (id, action) => {
     try {
-      await api.post(`/bookings/${id}/${action}`)
+      await api.post(`/bookings/${id}/${action}`, { status: action === 'approve' ? 'Approved' : 'Rejected' })
       setRequests((prev) => prev.filter((r) => r._id !== id))
       toast.success(`Booking ${action}d successfully`)
     } catch {
