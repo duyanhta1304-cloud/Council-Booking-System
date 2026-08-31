@@ -50,7 +50,10 @@ export function PageHeader({ title, description, action }) {
       marginBottom: 'var(--space-lg)', flexWrap: 'wrap', gap: 'var(--space-md)',
     }}>
       <div>
-        <h1 style={{ fontSize: 'var(--font-size-2xl)', color: 'var(--color-text)', margin: '0 0 4px' }}>
+        <h1 style={{
+          fontFamily: 'var(--font-family-heading)', fontWeight: 600,
+          fontSize: 'var(--font-size-2xl)', color: 'var(--color-text)', margin: '0 0 4px',
+        }}>
           {title}
         </h1>
         {description && (
@@ -75,9 +78,10 @@ export function Badge({ children, tone = 'default' }) {
 
   return (
     <span style={{
-      display: 'inline-block', padding: '2px 10px', borderRadius: 'var(--radius-full)',
-      backgroundColor: bg, color: text, fontSize: 'var(--font-size-xs)',
-      fontWeight: 'var(--font-weight-semibold)', whiteSpace: 'nowrap',
+      display: 'inline-block', padding: '2px 10px', borderRadius: 'var(--radius-sm)',
+      backgroundColor: bg, color: text, fontSize: '11px', fontFamily: 'var(--font-family-mono)',
+      fontWeight: 'var(--font-weight-medium)', letterSpacing: '0.04em', textTransform: 'uppercase',
+      whiteSpace: 'nowrap',
     }}>
       {children}
     </span>
@@ -110,8 +114,9 @@ export function StatusBadge({ label, tone = 'neutral' }) {
   const { bg, text } = STATUS_TONES[tone] || STATUS_TONES.neutral
   return (
     <span style={{
-      display: 'inline-block', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)',
-      padding: '3px 10px', borderRadius: 'var(--radius-full)', backgroundColor: bg, color: text,
+      display: 'inline-block', fontSize: '11px', fontFamily: 'var(--font-family-mono)',
+      fontWeight: 'var(--font-weight-medium)', letterSpacing: '0.04em', textTransform: 'uppercase',
+      padding: '3px 10px', borderRadius: 'var(--radius-sm)', backgroundColor: bg, color: text,
       whiteSpace: 'nowrap',
     }}>
       {label}
@@ -121,20 +126,22 @@ export function StatusBadge({ label, tone = 'neutral' }) {
 
 export function Button({ children, variant = 'primary', style, ...props }) {
   const variants = {
-    primary: { backgroundColor: 'var(--color-primary)', color: 'var(--color-text-on-dark)', border: 'none' },
-    secondary: { backgroundColor: 'transparent', color: 'var(--color-text)', border: '1px solid var(--color-border)' },
-    danger: { backgroundColor: 'var(--color-danger)', color: 'var(--color-text-on-dark)', border: 'none' },
+    primary: { rest: 'var(--color-primary)', hover: 'var(--color-primary-hover)', color: 'var(--color-text-on-dark)', border: 'none' },
+    secondary: { rest: 'transparent', hover: 'var(--color-bg)', color: 'var(--color-text)', border: '1px solid var(--color-border)' },
+    danger: { rest: 'var(--color-danger)', hover: 'var(--color-danger-text)', color: 'var(--color-text-on-dark)', border: 'none' },
   }
+  const v = variants[variant]
   return (
     <button
       {...props}
       style={{
-        padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: 'var(--font-size-sm)',
-        fontWeight: 'var(--font-weight-medium)', cursor: 'pointer',
-        transition: 'opacity var(--transition-fast)', ...variants[variant], ...style,
+        padding: '8px 16px', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-sm)',
+        fontWeight: 'var(--font-weight-medium)', cursor: 'pointer', backgroundColor: v.rest,
+        color: v.color, border: v.border,
+        transition: 'background-color var(--transition-fast)', ...style,
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85' }}
-      onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = v.hover }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = style?.backgroundColor ?? v.rest }}
     >
       {children}
     </button>
@@ -156,11 +163,14 @@ export function StatCard({ label, value, tone = 'neutral' }) {
   const { text } = STATUS_TONES[tone] || STATUS_TONES.neutral
   return (
     <Card style={{ padding: 'var(--space-md)' }}>
-      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginBottom: '6px' }}>
+      <div style={{
+        fontSize: '11px', fontFamily: 'var(--font-family-mono)', letterSpacing: '0.04em',
+        textTransform: 'uppercase', color: 'var(--color-text-secondary)', marginBottom: '8px',
+      }}>
         {label}
       </div>
       <div style={{
-        fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)',
+        fontFamily: 'var(--font-family-heading)', fontWeight: 600, fontSize: 'var(--font-size-2xl)',
         color: tone === 'neutral' ? 'var(--color-text)' : text,
       }}>
         {value}
@@ -181,7 +191,8 @@ export const selectStyle = {
 
 export const labelStyle = {
   display: 'flex', flexDirection: 'column', gap: '6px',
-  fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)',
+  fontSize: '11px', fontFamily: 'var(--font-family-mono)', letterSpacing: '0.04em',
+  textTransform: 'uppercase', color: 'var(--color-text-secondary)',
 }
 
 export const tableStyles = {
@@ -190,7 +201,7 @@ export const tableStyles = {
   th: {
     textAlign: 'left', padding: 'var(--space-sm) var(--space-md)', color: 'var(--color-text-secondary)',
     fontWeight: 'var(--font-weight-medium)', borderBottom: '1px solid var(--color-border)',
-    fontSize: 'var(--font-size-xs)', textTransform: 'uppercase', letterSpacing: '0.03em',
+    fontSize: '11px', fontFamily: 'var(--font-family-mono)', textTransform: 'uppercase', letterSpacing: '0.04em',
   },
   td: {
     padding: 'var(--space-sm) var(--space-md)', borderBottom: '1px solid var(--color-border)',
@@ -199,34 +210,34 @@ export const tableStyles = {
 }
 
 export const buttonStyle = {
-  padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none',
+  padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
   backgroundColor: 'var(--color-primary)', color: 'var(--color-text-on-dark)',
   fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
   cursor: 'pointer', transition: 'background-color var(--transition-fast)',
 }
 
 export const outlineButtonStyle = {
-  padding: '8px 16px', borderRadius: 'var(--radius-md)',
+  padding: '8px 16px', borderRadius: 'var(--radius-sm)',
   border: '1px solid var(--color-border-strong)', backgroundColor: 'transparent',
   color: 'var(--color-text)', fontSize: 'var(--font-size-sm)',
   fontWeight: 'var(--font-weight-medium)', cursor: 'pointer',
 }
 
 export const dangerButtonStyle = {
-  padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none',
+  padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
   backgroundColor: 'var(--color-danger)', color: 'var(--color-text-on-dark)',
   fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', cursor: 'pointer',
 }
 
 export const buttonOutlineStyle = {
-  padding: '8px 16px', borderRadius: 'var(--radius-md)',
+  padding: '8px 16px', borderRadius: 'var(--radius-sm)',
   border: '1px solid var(--color-border-strong)', backgroundColor: 'transparent',
   color: 'var(--color-text)', fontSize: 'var(--font-size-sm)',
   fontWeight: 'var(--font-weight-medium)', cursor: 'pointer',
 }
 
 export const buttonDangerStyle = {
-  padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none',
+  padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
   backgroundColor: 'var(--color-danger)', color: 'var(--color-text-on-dark)',
   fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', cursor: 'pointer',
 }

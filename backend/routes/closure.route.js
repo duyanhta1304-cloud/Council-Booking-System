@@ -8,7 +8,7 @@ const router = express.Router();
 router.get("/", authMiddleware, getClosures);
 
 // POST request to /api/closures
-// Only Admins (and maybe Staff) should be able to schedule closures
-router.post("/", authMiddleware, createClosure);
+// Closures now cancel overlapping bookings, so only Admins and Staff may create them.
+router.post("/", authMiddleware, requireRole("admin", "staff"), createClosure);
 
 export default router;

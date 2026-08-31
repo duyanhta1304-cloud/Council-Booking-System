@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
     const { data } = await api.post('/auth/google', {
       credential: credentialResponse.credential,
     })
-    return storeUser(data.user)
+    return { user: storeUser(data.user), isNewUser: data.isNewUser }
   }
 
   // Email/password login or signup. Throws with a usable message on failure.
@@ -87,7 +87,7 @@ export function AuthProvider({ children }) {
         ? await api.post('/auth/register', { name, email, password, accountType })
         : await api.post('/auth/login', { email, password })
 
-      return storeUser(data.user)
+      return { user: storeUser(data.user), isNewUser: isSignup }
     } catch (error) {
       const message =
         error.response?.data?.message ??

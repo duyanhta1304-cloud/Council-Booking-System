@@ -176,7 +176,10 @@ export function UserProfileCard() {
                     cursor: 'pointer',
                     textAlign: 'left',
                     marginTop: 'auto',
+                    transition: 'border-color var(--transition-fast)',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-border-strong)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)' }}
             >
                 {user.profilePictureUrl ? (
                     <img
@@ -318,6 +321,8 @@ export function UserProfileCard() {
                                     style={{
                                         margin: 0,
                                         color: 'var(--color-text)',
+                                        fontFamily: 'var(--font-family-heading)',
+                                        fontWeight: 600,
                                         fontSize: 'var(--font-size-xl)',
                                     }}
                                 >

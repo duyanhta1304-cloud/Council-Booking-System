@@ -10,7 +10,7 @@ import staffRoute from "./routes/staff.route.js";
 import residentRoute from "./routes/resident.route.js";
 import auditLogRoute from "./routes/auditLog.route.js";
 import reportRoute from "./routes/report.route.js";
-import rateLimiter from "./middleware/rateLimit.js"
+import notificationRoute from "./routes/notification.route.js";
 import { connectDB } from "./db/db.js"
 import cors from "cors"
 import cookieParser from "cookie-parser"
@@ -39,16 +39,17 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 
-app.use("/api/auth", rateLimiter, authRoute)
+app.use("/api/auth", authRoute)
 app.use("/api/facilities", facilityRoute)
 app.use("/api/closures", closureRoute);
-app.use("/api/bookings", rateLimiter, bookingRoute);
+app.use("/api/bookings", bookingRoute);
 app.use("/api/maintenance", maintenanceRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/staff", staffRoute);
 app.use("/api/resident", residentRoute);
 app.use("/api/audit-log", auditLogRoute);
 app.use("/api/reports", reportRoute);
+app.use("/api/notifications", notificationRoute);
 
 connectDB().then(() => {
     app.listen(PORT, () => {

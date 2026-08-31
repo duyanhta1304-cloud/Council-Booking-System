@@ -113,6 +113,7 @@ export async function googleLogin(req, res) {
 
     const email = payload.email.toLowerCase()
     let user = await User.findOne({ email })
+    const isNewUser = !user
 
     if (!user) {
       user = new User({
@@ -130,7 +131,7 @@ export async function googleLogin(req, res) {
     await user.save()
 
     setAuthCookie(res, user)
-    res.json({ user: user.toPublicJSON() })
+    res.json({ user: user.toPublicJSON(), isNewUser })
   } catch (error) {
     console.log('Google login error: ', error)
     res.status(401).json({ message: 'Google sign-in failed' })

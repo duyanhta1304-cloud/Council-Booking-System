@@ -4,30 +4,36 @@
   padding: 0;
 }
 
+h1, h2, h3 {
+  font-family: var(--font-family-heading);
+  font-weight: 600;
+}
+
 :root {
   /* ==========================================================
-   Colors — brand
+   Colors — brand ("civic ledger": ink navy + brass, see
+   pages/landing/ledgerTheme.js for the source of these values)
    ========================================================== */
-  --color-primary: #0b4f6c;
-  --color-primary-hover: #083c52;
-  --color-primary-light: #e6f1fb;
-  --color-primary-dark: #063349;
+  --color-primary: #0d3b4f;
+  --color-primary-hover: #092b3a;
+  --color-primary-light: #e4ecee;
+  --color-primary-dark: #061a22;
 
-  --color-secondary: #14919b;
-  --color-secondary-hover: #0f6e56;
-  --color-secondary-light: #e1f5ee;
-  --color-secondary-dark: #085041;
+  --color-secondary: #a8752a;
+  --color-secondary-hover: #8a5f20;
+  --color-secondary-light: #f5ead8;
+  --color-secondary-dark: #6e4a18;
 
   /* Colors — neutrals */
-  --color-bg: #f4f7f6;
-  --color-surface: #ffffff;
-  --color-border: #d3d1c7;
-  --color-border-strong: #b4b2a9;
+  --color-bg: #eef1ec;
+  --color-surface: #fffdf7;
+  --color-border: #c9c4b4;
+  --color-border-strong: #a8a290;
 
-  --color-text: #263238;
-  --color-text-secondary: #5f5e5a;
-  --color-text-muted: #888780;
-  --color-text-on-dark: #ffffff;
+  --color-text: #1b2420;
+  --color-text-secondary: #4d5852;
+  --color-text-muted: #7c8580;
+  --color-text-on-dark: #f4efe2;
 
   /* Colors — status */
   --color-success: #3e8e5b;
@@ -60,7 +66,9 @@
   /* ==========================================================
   Typography
   ========================================================== */
-  font-family: "Poppins", sans-serif;
+  font-family: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-family-heading: "Fraunces", "Iowan Old Style", ui-serif, Georgia, serif;
+  --font-family-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -91,9 +99,9 @@
   /* ==========================================================
      Shadow — kept subtle, this is a council site, not a product landing page
      ========================================================== */
-  --shadow-sm: 0 1px 2px rgba(11, 79, 108, 0.06);
-  --shadow-md: 0 2px 8px rgba(11, 79, 108, 0.1);
-  --shadow-lg: 0 8px 24px rgba(11, 79, 108, 0.14);
+  --shadow-sm: 0 1px 2px rgba(13, 59, 79, 0.06);
+  --shadow-md: 0 2px 8px rgba(13, 59, 79, 0.1);
+  --shadow-lg: 0 8px 24px rgba(13, 59, 79, 0.14);
 
   /* ==========================================================
      Motion
@@ -110,4 +118,11 @@
   --z-modal-backdrop: 300;
   --z-modal: 400;
   --z-toast: 500;
+}
+
+/* Keyboard-focus ring — consistent across native buttons/inputs/links,
+   which inline styles can't express via :focus-visible on their own. */
+:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
 }

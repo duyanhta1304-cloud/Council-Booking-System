@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="14.3.0">
-  <zoom_level>6</zoom_level>
+<diagram program="umlet" version="15.1">
+  <zoom_level>9</zoom_level>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>528</x>
-      <y>42</y>
-      <w>60</w>
-      <h>90</h>
+      <x>531</x>
+      <y>81</y>
+      <w>90</w>
+      <h>135</h>
     </coordinates>
     <panel_attributes>User
 --
@@ -24,10 +24,10 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>438</x>
-      <y>168</y>
-      <w>84</w>
-      <h>72</h>
+      <x>396</x>
+      <y>270</y>
+      <w>126</w>
+      <h>108</h>
     </coordinates>
     <panel_attributes>Resident
 --
@@ -42,10 +42,10 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>528</x>
-      <y>168</y>
-      <w>84</w>
-      <h>54</h>
+      <x>531</x>
+      <y>270</y>
+      <w>126</w>
+      <h>81</h>
     </coordinates>
     <panel_attributes>Staff
 -
@@ -59,10 +59,10 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>636</x>
-      <y>168</y>
-      <w>96</w>
-      <h>60</h>
+      <x>693</x>
+      <y>270</y>
+      <w>144</w>
+      <h>90</h>
     </coordinates>
     <panel_attributes>Admin
 --
@@ -76,10 +76,10 @@
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>552</x>
-      <y>126</y>
-      <w>18</w>
-      <h>36</h>
+      <x>567</x>
+      <y>207</y>
+      <w>27</w>
+      <h>54</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;40.0</additional_attributes>
@@ -87,10 +87,10 @@
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>462</x>
-      <y>138</y>
-      <w>234</w>
-      <h>42</h>
+      <x>432</x>
+      <y>225</y>
+      <w>351</w>
+      <h>63</h>
     </coordinates>
     <panel_attributes>lt=-
 </panel_attributes>
@@ -99,10 +99,10 @@
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>552</x>
-      <y>144</y>
-      <w>18</w>
-      <h>36</h>
+      <x>567</x>
+      <y>234</y>
+      <w>27</w>
+      <h>54</h>
     </coordinates>
     <panel_attributes>lt=-
 </panel_attributes>
@@ -111,25 +111,27 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>420</x>
-      <y>414</y>
-      <w>72</w>
-      <h>48</h>
+      <x>369</x>
+      <y>639</y>
+      <w>126</w>
+      <h>99</h>
     </coordinates>
     <panel_attributes>Facilities
 --
 - facilityId {key}
 - status
-- descripton</panel_attributes>
+- descripton
+--
++ checkAvailability()</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>348</x>
-      <y>516</y>
-      <w>60</w>
-      <h>42</h>
+      <x>261</x>
+      <y>792</y>
+      <w>90</w>
+      <h>63</h>
     </coordinates>
     <panel_attributes>Room
 --
@@ -142,10 +144,10 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>480</x>
-      <y>516</y>
-      <w>60</w>
-      <h>42</h>
+      <x>459</x>
+      <y>792</y>
+      <w>90</w>
+      <h>63</h>
     </coordinates>
     <panel_attributes>Equipment
 --
@@ -156,10 +158,10 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>420</x>
-      <y>288</y>
-      <w>72</w>
-      <h>72</h>
+      <x>369</x>
+      <y>450</y>
+      <w>108</w>
+      <h>108</h>
     </coordinates>
     <panel_attributes>Booking
 --
@@ -174,10 +176,10 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>282</x>
-      <y>168</y>
-      <w>102</w>
-      <h>60</h>
+      <x>162</x>
+      <y>270</y>
+      <w>153</w>
+      <h>126</h>
     </coordinates>
     <panel_attributes>Maintenance Report
 --
@@ -185,16 +187,19 @@
 - description
 - dateReported
 - status
+- assignedStaffId
+--
++ assignTo()
 </panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>342</x>
-      <y>66</y>
-      <w>102</w>
-      <h>72</h>
+      <x>252</x>
+      <y>117</y>
+      <w>153</w>
+      <h>108</h>
     </coordinates>
     <panel_attributes>Audit Log
 --
@@ -209,10 +214,10 @@
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>438</x>
-      <y>60</y>
-      <w>102</w>
-      <h>30</h>
+      <x>396</x>
+      <y>108</y>
+      <w>153</w>
+      <h>45</h>
     </coordinates>
     <panel_attributes>lt=-
 m1=0..*
@@ -223,10 +228,10 @@ triggers</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>462</x>
-      <y>234</y>
-      <w>42</w>
-      <h>66</h>
+      <x>432</x>
+      <y>369</y>
+      <w>63</w>
+      <h>99</h>
     </coordinates>
     <panel_attributes>lt=-
 m1= 1
@@ -237,10 +242,10 @@ creates</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>486</x>
-      <y>216</y>
-      <w>114</w>
-      <h>102</h>
+      <x>468</x>
+      <y>342</y>
+      <w>171</w>
+      <h>153</h>
     </coordinates>
     <panel_attributes>lt=-
 reviews
@@ -251,10 +256,10 @@ m2=0..*</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>450</x>
-      <y>354</y>
-      <w>54</w>
-      <h>72</h>
+      <x>414</x>
+      <y>549</y>
+      <w>81</w>
+      <h>108</h>
     </coordinates>
     <panel_attributes>lt=-
 booked for
@@ -265,10 +270,10 @@ m2=0..*</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>378</x>
-      <y>168</y>
-      <w>72</w>
-      <h>30</h>
+      <x>306</x>
+      <y>270</y>
+      <w>108</w>
+      <h>45</h>
     </coordinates>
     <panel_attributes>lt=-
 report
@@ -279,52 +284,52 @@ m2=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>324</x>
-      <y>222</y>
-      <w>108</w>
-      <h>228</h>
+      <x>225</x>
+      <y>387</y>
+      <w>162</w>
+      <h>306</h>
     </coordinates>
     <panel_attributes>lt=-
 associated with
 m1=0..*
 m2=1</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;350.0;160.0;350.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;310.0;160.0;310.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>378</x>
-      <y>456</y>
-      <w>72</w>
-      <h>72</h>
+      <x>306</x>
+      <y>729</y>
+      <w>108</w>
+      <h>81</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 contains
 m1=1
 m2=*</panel_attributes>
-    <additional_attributes>90.0;10.0;90.0;60.0;10.0;60.0;10.0;100.0</additional_attributes>
+    <additional_attributes>90.0;10.0;90.0;40.0;10.0;40.0;10.0;70.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>456</x>
-      <y>456</y>
-      <w>66</w>
-      <h>72</h>
+      <x>423</x>
+      <y>729</y>
+      <w>99</w>
+      <h>81</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 manages
 m1=0
 m2=*</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;60.0;90.0;60.0;90.0;100.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;40.0;90.0;40.0;90.0;70.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>318</x>
-      <y>12</y>
-      <w>450</w>
-      <h>192</h>
+      <x>216</x>
+      <y>36</y>
+      <w>675</w>
+      <h>288</h>
     </coordinates>
     <panel_attributes>lt=-
 m1=0..*
@@ -337,14 +342,89 @@ reviews
     <id>Relation</id>
     <coordinates>
       <x>486</x>
-      <y>222</y>
-      <w>240</w>
-      <h>234</h>
+      <y>351</y>
+      <w>360</w>
+      <h>351</h>
     </coordinates>
     <panel_attributes>lt=-
 controls
 m1=1
 m2=0..*</panel_attributes>
-    <additional_attributes>330.0;10.0;330.0;360.0;10.0;360.0</additional_attributes>
+    <additional_attributes>370.0;10.0;370.0;360.0;10.0;360.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>657</x>
+      <y>450</y>
+      <w>171</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>Closure
+--
+- closureId {key}
+- startDate
+- endDate
+- reason
+--
++ scheduleClosure()
++ manageAffectedBookings()</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>630</x>
+      <y>342</y>
+      <w>90</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m1=1
+m2=0..*
+creates</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;60.0;60.0;60.0;60.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>486</x>
+      <y>567</y>
+      <w>216</w>
+      <h>108</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m1=0..*
+m2=1
+closes</panel_attributes>
+    <additional_attributes>10.0;90.0;210.0;90.0;210.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>468</x>
+      <y>495</y>
+      <w>207</w>
+      <h>45</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m1=0..*
+m2=0..*
+impacts</panel_attributes>
+    <additional_attributes>10.0;20.0;210.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>306</x>
+      <y>342</y>
+      <w>279</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m1=1
+m2=0..*
+assigned to</panel_attributes>
+    <additional_attributes>10.0;50.0;270.0;50.0;270.0;10.0</additional_attributes>
   </element>
 </diagram>

@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router'
 import { UserProfileCard } from '../auth'
+import { NotificationBell } from '../notifications'
 
 function GeneralLayout({ role, navItems }) {
     const roleName = role.charAt(0).toUpperCase() + role.slice(1)
@@ -21,14 +22,25 @@ function GeneralLayout({ role, navItems }) {
                 {/* Logo / Title */}
                 <div
                     style={{
-                        fontWeight: 'var(--font-weight-bold)',
-                        fontSize: 'var(--font-size-base)',
-                        color: 'var(--color-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         padding: '0 var(--space-sm)',
                         marginBottom: 'var(--space-lg)',
                     }}
                 >
-                    CoastLink {roleName}
+                    <span
+                        style={{
+                            fontFamily: 'var(--font-family-heading)',
+                            fontWeight: 600,
+                            fontSize: 'var(--font-size-base)',
+                            color: 'var(--color-primary)',
+                        }}
+                    >
+                        CoastLink {roleName}
+                    </span>
+
+                    <NotificationBell />
                 </div>
 
                 {/* Navigation */}
@@ -38,20 +50,31 @@ function GeneralLayout({ role, navItems }) {
                         to={item.to}
                         end={item.end}
                         style={({ isActive }) => ({
-                            padding: '10px var(--space-sm)',
-                            borderRadius: 'var(--radius-md)',
+                            padding: '10px var(--space-sm) 10px 11px',
+                            borderLeft: `3px solid ${isActive ? 'var(--color-secondary)' : 'transparent'}`,
                             textDecoration: 'none',
                             fontSize: 'var(--font-size-sm)',
                             fontWeight: isActive
                                 ? 'var(--font-weight-semibold)'
                                 : 'var(--font-weight-regular)',
                             color: isActive
-                                ? 'var(--color-primary)'
+                                ? 'var(--color-text)'
                                 : 'var(--color-text-secondary)',
                             backgroundColor: isActive
                                 ? 'var(--color-primary-light)'
                                 : 'transparent',
+                            transition: 'background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast)',
                         })}
+                        onMouseEnter={(e) => {
+                            if (e.currentTarget.getAttribute('aria-current') !== 'page') {
+                                e.currentTarget.style.backgroundColor = 'var(--color-bg)'
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (e.currentTarget.getAttribute('aria-current') !== 'page') {
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                            }
+                        }}
                     >
                         {item.label}
                     </NavLink>
