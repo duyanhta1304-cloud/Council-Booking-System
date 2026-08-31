@@ -43,6 +43,35 @@ export function formatAddress(address) {
 
 
 
+// What a booking actually reserves. A facility booking is named by its space;
+// an equipment booking is named by the items and how many of each, with the
+// facility demoted to the place they're collected from.
+export function bookingSubject(booking) {
+  if (booking?.bookingType !== 'Equipment') {
+    return { primary: booking?.facility?.name ?? '—', secondary: null }
+  }
+
+  const items = (booking.equipment ?? []).map((e) => `${e.quantity} × ${e.name}`).join(', ')
+  return {
+    primary: items || 'Equipment',
+    secondary: booking.facility?.name ? `from ${booking.facility.name}` : null,
+  }
+}
+
+export function BookingSubject({ booking }) {
+  const { primary, secondary } = bookingSubject(booking)
+  return (
+    <div>
+      <div>{primary}</div>
+      {secondary && (
+        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+          {secondary}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PageHeader({ title, description, action }) {
   return (
     <div style={{

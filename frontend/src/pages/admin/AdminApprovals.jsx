@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, StatusBadge, Button, EmptyState } from '../../components/ui'
+import { PageHeader, Card, StatusBadge, Button, EmptyState, bookingSubject } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 function ApprovalsQueue() {
@@ -39,11 +39,19 @@ function ApprovalsQueue() {
             padding: 'var(--space-md)', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap',
           }}>
             <div style={{ minWidth: '200px' }}>
-              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', fontWeight: 'var(--font-weight-medium)' }}>
-                {r.facility?.name ?? 'Unknown facility'}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--space-xs)',
+                fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', fontWeight: 'var(--font-weight-medium)',
+              }}>
+                <StatusBadge
+                  label={r.bookingType === 'Equipment' ? 'Equipment' : 'Facility'}
+                  tone={r.bookingType === 'Equipment' ? 'info' : 'neutral'}
+                />
+                {bookingSubject(r).primary}
               </div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
                 {r.user?.name ?? 'Unknown user'} · {new Date(r.startTime).toLocaleString()}
+                {bookingSubject(r).secondary ? ` · ${bookingSubject(r).secondary}` : ''}
               </div>
             </div>
 

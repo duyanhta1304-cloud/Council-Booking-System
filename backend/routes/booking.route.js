@@ -1,9 +1,10 @@
 import express from "express";
-import { createBooking, getBookings, updateBookingStatus, cancelMyBooking, getAvailability } from "../controllers/booking.controller.js";
+import { createBooking, getBookings, updateBookingStatus, cancelMyBooking, getAvailability, getEquipmentAvailability } from "../controllers/booking.controller.js";
 import authMiddleware, { requireRole } from "../middleware/auth.js";
 const router = express.Router();
 // Must be declared before "/:id" routes so "availability" isn't read as an id.
 router.get("/availability", authMiddleware, getAvailability);
+router.get("/equipment-availability", authMiddleware, getEquipmentAvailability);
 router.post("/", authMiddleware, createBooking);
 router.get("/", authMiddleware, requireRole("admin", "staff"), getBookings);
 router.patch("/:id", authMiddleware, requireRole("admin", "staff"), updateBookingStatus);

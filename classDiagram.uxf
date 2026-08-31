@@ -146,13 +146,18 @@
     <coordinates>
       <x>459</x>
       <y>792</y>
-      <w>90</w>
-      <h>63</h>
+      <w>117</w>
+      <h>126</h>
     </coordinates>
     <panel_attributes>Equipment
 --
+- equipmentId {key}
 - name
-- description</panel_attributes>
+- description
+- quantity
+- status
+--
++ unitsFreeAt()</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -160,17 +165,19 @@
     <coordinates>
       <x>369</x>
       <y>450</y>
-      <w>108</w>
-      <h>108</h>
+      <w>126</w>
+      <h>126</h>
     </coordinates>
     <panel_attributes>Booking
 --
 - bookingId {key}
+- bookingType
 - startTime
 - endTime
 - Status
 --
-+ conflictDetect()</panel_attributes>
++ conflictDetect()
++ stockCheck()</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -426,5 +433,48 @@ m1=1
 m2=0..*
 assigned to</panel_attributes>
     <additional_attributes>10.0;50.0;270.0;50.0;270.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>612</x>
+      <y>639</y>
+      <w>153</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>BookingEquipment
+--
+- equipmentId
+- name
+- quantity</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>468</x>
+      <y>495</y>
+      <w>216</w>
+      <h>225</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m1=1
+m2=0..*
+reserves</panel_attributes>
+    <additional_attributes>9.0;30.0;120.0;30.0;120.0;195.0;144.0;195.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>567</x>
+      <y>729</y>
+      <w>135</w>
+      <h>135</h>
+    </coordinates>
+    <panel_attributes>lt=-
+m1=1
+m2=0..*
+draws from</panel_attributes>
+    <additional_attributes>9.0;121.0;123.0;121.0;123.0;9.0</additional_attributes>
   </element>
 </diagram>

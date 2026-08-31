@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, Badge, tableStyles, inputStyle } from '../../components/ui'
+import { PageHeader, Card, Badge, BookingSubject, bookingSubject, tableStyles, inputStyle } from '../../components/ui'
 import toast from 'react-hot-toast'
+
+const TYPE_FILTERS = ['All', 'Facility', 'Equipment']
 
 function statusTone(status) {
   if (status === 'Approved') return 'success'
@@ -10,10 +12,15 @@ function statusTone(status) {
   return 'default'
 }
 
+function typeOf(booking) {
+  return booking.bookingType === 'Equipment' ? 'Equipment' : 'Facility'
+}
+
 function StaffBookings() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [typeFilter, setTypeFilter] = useState('All')
 
   useEffect(() => {
     api.get('/staff/bookings')
@@ -25,9 +32,13 @@ function StaffBookings() {
   const formatDate = (d) => new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
   const formatTime = (d) => new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
 
-  const filtered = bookings.filter((b) =>
-    `${b.facility?.name} ${b.user?.name} ${b.status}`.toLowerCase().includes(query.toLowerCase())
-  )
+  const filtered = bookings
+    .filter((b) => typeFilter === 'All' || typeOf(b) === typeFilter)
+    .filter((b) =>
+      `${bookingSubject(b).primary} ${b.facility?.name} ${b.user?.name} ${b.status}`
+        .toLowerCase()
+        .includes(query.toLowerCase())
+    )
 
   if (loading) return <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)' }}>Loading...</p>
 
@@ -35,7 +46,7 @@ function StaffBookings() {
     <div>
       <PageHeader
         title="Bookings"
-        description="View and manage facility bookings."
+        description="View and manage facility and equipment bookings."
         action={
           <input
             type="text"
@@ -47,12 +58,30 @@ function StaffBookings() {
         }
       />
 
+      <div style={{ display: 'flex', gap: 'var(--space-xs)', marginBottom: 'var(--space-md)', flexWrap: 'wrap' }}>
+        {TYPE_FILTERS.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTypeFilter(t)}
+            style={{
+              padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid var(--color-border)',
+              backgroundColor: typeFilter === t ? 'var(--color-primary)' : 'var(--color-surface)',
+              color: typeFilter === t ? 'var(--color-text-on-dark)' : 'var(--color-text-secondary)',
+              fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', cursor: 'pointer',
+            }}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       <Card style={{ padding: 0 }}>
         <div style={tableStyles.wrapper}>
           <table style={tableStyles.table}>
             <thead>
               <tr>
-                <th style={tableStyles.th}>Facility</th>
+                <th style={tableStyles.th}>Type</th>
+                <th style={tableStyles.th}>Booked</th>
                 <th style={tableStyles.th}>Resident</th>
                 <th style={tableStyles.th}>Date</th>
                 <th style={tableStyles.th}>Time</th>
@@ -62,13 +91,16 @@ function StaffBookings() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ ...tableStyles.td, textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  <td colSpan={6} style={{ ...tableStyles.td, textAlign: 'center', color: 'var(--color-text-muted)' }}>
                     No bookings found.
                   </td>
                 </tr>
               ) : filtered.map((b) => (
                 <tr key={b._id}>
-                  <td style={tableStyles.td}>{b.facility?.name ?? '—'}</td>
+                  <td style={tableStyles.td}>
+                    <Badge>{typeOf(b)}</Badge>
+                  </td>
+                  <td style={tableStyles.td}><BookingSubject booking={b} /></td>
                   <td style={tableStyles.td}>{b.user?.name ?? '—'}</td>
                   <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatDate(b.startTime)}</td>
                   <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatTime(b.startTime)}</td>

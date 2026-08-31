@@ -3,6 +3,7 @@ import GeneralLayout from './GeneralLayout'
 const NAV_ITEMS = [
     { to: '/resident', label: 'Home', end: true },
     { to: '/resident/facilities', label: 'Book a Facility' },
+    { to: '/resident/equipment', label: 'Borrow Equipment' },
     { to: '/resident/bookings', label: 'My Bookings' },
     { to: '/resident/maintenance', label: "Report Maintenance"}
 ]

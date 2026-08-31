@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, Badge, tableStyles, buttonOutlineStyle, buttonDangerStyle } from '../../components/ui'
+import { PageHeader, Card, Badge, BookingSubject, tableStyles, buttonOutlineStyle, buttonDangerStyle } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 const FILTERS = ['All', 'Upcoming', 'Pending', 'Past', 'Cancelled']
@@ -49,7 +49,7 @@ function ResidentBookings() {
 
   return (
     <div>
-      <PageHeader title="My bookings" description="View, track and cancel your facility bookings." />
+      <PageHeader title="My bookings" description="View, track and cancel your facility and equipment bookings." />
 
       <div style={{ display: 'flex', gap: 'var(--space-xs)', marginBottom: 'var(--space-md)', flexWrap: 'wrap' }}>
         {FILTERS.map((f) => (
@@ -73,7 +73,8 @@ function ResidentBookings() {
           <table style={tableStyles.table}>
             <thead>
               <tr>
-                <th style={tableStyles.th}>Facility</th>
+                <th style={tableStyles.th}>Type</th>
+                <th style={tableStyles.th}>Booked</th>
                 <th style={tableStyles.th}>Start Time</th>
                 <th style={tableStyles.th}>End Time</th>
                 <th style={tableStyles.th}>Status</th>
@@ -83,7 +84,10 @@ function ResidentBookings() {
             <tbody>
               {filtered.map((b) => (
                 <tr key={b._id}>
-                  <td style={tableStyles.td}>{b.facility?.name ?? '—'}</td>
+                  <td style={tableStyles.td}>
+                    <Badge>{b.bookingType === 'Equipment' ? 'Equipment' : 'Facility'}</Badge>
+                  </td>
+                  <td style={tableStyles.td}><BookingSubject booking={b} /></td>
                   <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{new Date(b.startTime).toLocaleString()}</td>
                   <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{new Date(b.endTime).toLocaleString()}</td>
                   <td style={tableStyles.td}>

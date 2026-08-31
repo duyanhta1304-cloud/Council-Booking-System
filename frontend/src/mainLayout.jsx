@@ -25,6 +25,7 @@ import StaffSchedule from './pages/staff/StaffSchedule'
 
 import ResidentHome from './pages/resident/ResidentHome'
 import ResidentFacilities from './pages/resident/ResidentFacilities'
+import ResidentEquipment from './pages/resident/ResidentEquipment'
 import ResidentBookings from './pages/resident/ResidentBookings'
 import ResidentMaintenance from './pages/resident/ResidentMaintenance'
 
@@ -73,6 +74,7 @@ function App() {
         <Route element={<ResidentLayout />}>
           <Route path="/resident" element={<ResidentHome />} />
           <Route path="/resident/facilities" element={<ResidentFacilities />} />
+          <Route path="/resident/equipment" element={<ResidentEquipment />} />
           <Route path="/resident/bookings" element={<ResidentBookings />} />
           <Route path="/resident/maintenance" element={<ResidentMaintenance />} />
         </Route>

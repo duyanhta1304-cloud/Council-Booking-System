@@ -13,6 +13,28 @@ export const MAX_DAYS_AHEAD = 90;
 // until an admin decides on it.
 const BLOCKING_STATUSES = ["Pending", "Approved"];
 
+// Bookings written before `bookingType` existed have no such field, so match on
+// "not Equipment" rather than "is Facility" — otherwise older room bookings
+// would stop holding their slot.
+const FACILITY_BOOKING = { bookingType: { $ne: "Equipment" } };
+
+// The bookable hours of one day, as [start, end) Date pairs.
+function hourSlots(dayStart) {
+    const slots = [];
+    for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour++) {
+        const slotStart = new Date(dayStart);
+        slotStart.setHours(hour, 0, 0, 0);
+        const slotEnd = new Date(slotStart);
+        slotEnd.setHours(hour + 1);
+        slots.push({ hour, slotStart, slotEnd });
+    }
+    return slots;
+}
+
+function overlaps(a, b) {
+    return a.startTime < b.end && a.endTime > b.start;
+}
+
 function startOfDay(date) {
     const copy = new Date(date);
     copy.setHours(0, 0, 0, 0);
@@ -45,6 +67,7 @@ export async function getAvailability(req, res) {
             Facility.findById(facility).select("name status"),
             Booking.find({
                 facility,
+                ...FACILITY_BOOKING,
                 status: { $in: BLOCKING_STATUSES },
                 startTime: { $lt: dayEnd },
                 endTime: { $gt: dayStart },
@@ -62,12 +85,7 @@ export async function getAvailability(req, res) {
         const closure = closures[0];
         const slots = [];
 
-        for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour++) {
-            const slotStart = new Date(dayStart);
-            slotStart.setHours(hour, 0, 0, 0);
-            const slotEnd = new Date(slotStart);
-            slotEnd.setHours(hour + 1);
-
+        for (const { hour, slotStart, slotEnd } of hourSlots(dayStart)) {
             let reason = null;
             if (facilityDoc.status !== "Active") reason = facilityDoc.status;
             else if (closure) reason = "Closed";
@@ -96,10 +114,101 @@ export async function getAvailability(req, res) {
     }
 }
 
+// How many units of one item are already spoken for during [start, end).
+function unitsHeld(bookings, equipmentId, start, end) {
+    return bookings
+        .filter((b) => overlaps(b, { start, end }))
+        .reduce((total, b) => {
+            const line = b.equipment.find((e) => e.equipmentId.equals(equipmentId));
+            return total + (line?.quantity ?? 0);
+        }, 0);
+}
+
+// Every booking that could be holding units of this item on this day.
+function equipmentBookingsOnDay(facility, equipmentId, dayStart, dayEnd) {
+    return Booking.find({
+        facility,
+        bookingType: "Equipment",
+        "equipment.equipmentId": equipmentId,
+        status: { $in: BLOCKING_STATUSES },
+        startTime: { $lt: dayEnd },
+        endTime: { $gt: dayStart },
+    }).select("startTime endTime equipment");
+}
+
+// GET /api/bookings/equipment-availability?facility=<id>&equipment=<id>&date=YYYY-MM-DD
+// Same shape as getAvailability, but each slot also carries how many units are
+// left — the resident picks a quantity, not just a time.
+export async function getEquipmentAvailability(req, res) {
+    try {
+        const { facility, equipment, date } = req.query;
+        if (!facility || !equipment || !date) {
+            return res.status(400).json({ message: "facility, equipment and date are required" });
+        }
+
+        const dayStart = startOfDay(new Date(`${date}T00:00:00`));
+        if (Number.isNaN(dayStart.getTime())) return res.status(400).json({ message: "Invalid date" });
+
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayEnd.getDate() + 1);
+
+        const facilityDoc = await Facility.findById(facility).select("name status equipment");
+        if (!facilityDoc) return res.status(404).json({ message: "Facility not found" });
+
+        const item = facilityDoc.equipment.id(equipment);
+        if (!item) return res.status(404).json({ message: "Equipment not found" });
+
+        const [bookings, closures] = await Promise.all([
+            equipmentBookingsOnDay(facility, item._id, dayStart, dayEnd),
+            Closure.find({ facility, startDate: { $lt: dayEnd }, endDate: { $gt: dayStart } }).select("reason"),
+        ]);
+
+        const now = new Date();
+        const closure = closures[0];
+        const slots = [];
+
+        for (const { hour, slotStart, slotEnd } of hourSlots(dayStart)) {
+            const remaining = item.quantity - unitsHeld(bookings, item._id, slotStart, slotEnd);
+
+            let reason = null;
+            if (facilityDoc.status !== "Active") reason = facilityDoc.status;
+            else if (item.status !== "Available") reason = item.status;
+            else if (closure) reason = "Closed";
+            else if (slotEnd <= now) reason = "Past";
+            else if (remaining <= 0) reason = "All out";
+
+            slots.push({
+                hour,
+                label: `${String(hour).padStart(2, "0")}:00`,
+                startTime: slotStart.toISOString(),
+                endTime: slotEnd.toISOString(),
+                remaining: Math.max(remaining, 0),
+                available: reason === null,
+                reason,
+            });
+        }
+
+        res.json({
+            facility: { _id: facilityDoc._id, name: facilityDoc.name, status: facilityDoc.status },
+            equipment: { _id: item._id, name: item.name, quantity: item.quantity, status: item.status },
+            date,
+            closureReason: closure?.reason ?? null,
+            slots,
+        });
+    } catch (error) {
+        console.log("Equipment availability error:", error);
+        res.status(500).json({ message: "Could not load equipment availability" });
+    }
+}
+
 export async function createBooking(req, res) {
     try {
-        const { facility, startTime, endTime, purpose } = req.body;
+        const { facility, startTime, endTime, purpose, equipmentId, quantity } = req.body;
         if (!facility || !startTime || !endTime) return res.status(400).json({ message: "Missing fields" });
+
+        // An equipment request is told apart by carrying an item id; everything
+        // else is a request for the space itself.
+        const isEquipment = Boolean(equipmentId);
 
         const start = new Date(startTime);
         const end = new Date(endTime);
@@ -121,22 +230,52 @@ export async function createBooking(req, res) {
             return res.status(400).json({ message: `Bookings must fall between ${OPENING_HOUR}:00 and ${CLOSING_HOUR}:00` });
         }
 
-        const facilityDoc = await Facility.findById(facility).select("status");
+        const facilityDoc = await Facility.findById(facility).select("status equipment");
         if (!facilityDoc) return res.status(404).json({ message: "Facility not found" });
         if (facilityDoc.status !== "Active") return res.status(409).json({ message: "That facility is not available for booking" });
 
         const closure = await Closure.findOne({ facility, startDate: { $lt: end }, endDate: { $gt: start } });
         if (closure) return res.status(409).json({ message: `Facility is closed: ${closure.reason}` });
 
-        // Overlap test: an existing booking clashes when it starts before this
-        // one ends and ends after this one starts.
-        const clash = await Booking.findOne({
-            facility,
-            status: { $in: BLOCKING_STATUSES },
-            startTime: { $lt: end },
-            endTime: { $gt: start },
-        });
-        if (clash) return res.status(409).json({ message: "That time slot has just been taken. Please pick another." });
+        let item = null;
+        let wanted = 0;
+
+        if (isEquipment) {
+            item = facilityDoc.equipment.id(equipmentId);
+            if (!item) return res.status(404).json({ message: "Equipment not found" });
+            if (item.status !== "Available") return res.status(409).json({ message: `That item is ${item.status.toLowerCase()}` });
+
+            wanted = Number(quantity);
+            if (!Number.isInteger(wanted) || wanted < 1) return res.status(400).json({ message: "Quantity must be a whole number of at least 1" });
+            if (wanted > item.quantity) {
+                return res.status(400).json({ message: `Only ${item.quantity} of ${item.name} exist` });
+            }
+
+            // Unlike a room, the item is not taken or free — it is counted. The
+            // request fits only if every hour it spans still has `wanted` units
+            // left, so check the tightest hour rather than the range as a whole.
+            const held = await equipmentBookingsOnDay(facility, item._id, start, end);
+            for (const { slotStart, slotEnd } of hourSlots(startOfDay(start))) {
+                if (slotEnd <= start || slotStart >= end) continue;
+                const remaining = item.quantity - unitsHeld(held, item._id, slotStart, slotEnd);
+                if (remaining < wanted) {
+                    return res.status(409).json({
+                        message: `Only ${Math.max(remaining, 0)} left at ${String(slotStart.getHours()).padStart(2, "0")}:00. Pick a smaller quantity or another time.`,
+                    });
+                }
+            }
+        } else {
+            // Overlap test: an existing booking clashes when it starts before this
+            // one ends and ends after this one starts.
+            const clash = await Booking.findOne({
+                facility,
+                ...FACILITY_BOOKING,
+                status: { $in: BLOCKING_STATUSES },
+                startTime: { $lt: end },
+                endTime: { $gt: start },
+            });
+            if (clash) return res.status(409).json({ message: "That time slot has just been taken. Please pick another." });
+        }
 
         const newBooking = await Booking.create({
             user: req.user.userId,
@@ -145,8 +284,14 @@ export async function createBooking(req, res) {
             endTime: end,
             purpose,
             status: "Pending",
+            bookingType: isEquipment ? "Equipment" : "Facility",
+            equipment: isEquipment ? [{ equipmentId: item._id, name: item.name, quantity: wanted }] : [],
         });
-        await AuditLog.create({ action: "Created Booking", principal: req.user.userId, details: newBooking._id.toString() });
+        await AuditLog.create({
+            action: isEquipment ? "Created Equipment Booking" : "Created Booking",
+            principal: req.user.userId,
+            details: newBooking._id.toString(),
+        });
         res.status(201).json(newBooking);
     } catch (error) {
         console.log("Create booking error:", error);

@@ -14,7 +14,18 @@ const roomSchema = mongoose.Schema(
 );
 const equipmentSchema = new mongoose.Schema({
     name: {type: String, required: true},
-    description: { type: String, required: false }
+    description: { type: String, required: false },
+    // The attribute a room has no use for: a room is taken whole, so its
+    // availability is a yes/no. Equipment is stocked in counts, so its
+    // availability is "how many of the N units are still free this hour".
+    quantity: { type: Number, required: true, default: 1, min: 1 },
+    // Lets an admin pull a broken item out of circulation without deleting it
+    // or taking the whole facility offline.
+    status: {
+        type: String,
+        enum: ["Available", "Under Maintenance", "Retired"],
+        default: "Available",
+    }
 });
 
 const facilitiesSchema = mongoose.Schema(
