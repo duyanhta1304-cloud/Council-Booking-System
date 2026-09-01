@@ -9,6 +9,7 @@ import LandingPage from './pages/landing/landingPage'
 import AdminLayout from './components/layouts/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminFacilities from './pages/admin/AdminFacilities'
+import AdminEquipment from './pages/admin/AdminEquipment'
 import AdminApprovals from './pages/admin/AdminApprovals'
 import AdminBookings from './pages/admin/AdminBookings'
 import AdminMaintenance from './pages/admin/AdminMaintenance'
@@ -50,6 +51,7 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/facilities" element={<AdminFacilities />} />
+          <Route path="/admin/equipment" element={<AdminEquipment />} />
           <Route path="/admin/approvals" element={<AdminApprovals />} />
           <Route path="/admin/bookings" element={<AdminBookings />} />
           <Route path="/admin/maintenance" element={<AdminMaintenance />} />

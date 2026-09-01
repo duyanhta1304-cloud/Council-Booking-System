@@ -26,7 +26,7 @@ function formatRange(slots) {
 }
 
 function EquipmentCard({ item, onRequestBooking }) {
-  const unavailable = item.status !== 'Available' || item.facility?.status !== 'Active'
+  const unavailable = item.status !== 'Available'
 
   return (
     <Card>
@@ -39,7 +39,7 @@ function EquipmentCard({ item, onRequestBooking }) {
             {item.description || 'No description provided.'}
           </p>
           <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '6px' }}>
-            Collect from {item.facility?.name ?? 'Unknown facility'}
+            {item.facility?.name ? `Collect from ${item.facility.name}` : 'No fixed collection point'}
           </p>
         </div>
         <Badge tone={availabilityTone(item.status)}>{item.status}</Badge>
@@ -110,16 +110,22 @@ function SlotButton({ slot, state, onClick }) {
   )
 }
 
-function EquipmentRequestModal({ item, onClose, onSubmit }) {
+function EquipmentRequestModal({ item, linkableBookings, onClose, onSubmit }) {
   const today = new Date()
   const maxDate = new Date(today)
   maxDate.setDate(maxDate.getDate() + MAX_DAYS_AHEAD)
 
-  const [date, setDate] = useState(toDateInputValue(today))
+  const [linkId, setLinkId] = useState('')
+  const linked = linkableBookings.find((b) => b._id === linkId) ?? null
+
+  // Linking pins the equipment to that booking's day; unlinked, the resident
+  // picks any day themselves.
+  const [ownDate, setOwnDate] = useState(toDateInputValue(today))
+  const date = linked ? toDateInputValue(new Date(linked.startTime)) : ownDate
+
   // null means "still loading" — avoids a separate loading flag the effect
   // would have to set synchronously.
   const [slots, setSlots] = useState(null)
-  const [closureReason, setClosureReason] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [selectedHours, setSelectedHours] = useState([])
   const [purpose, setPurpose] = useState('')
@@ -132,12 +138,11 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
     let cancelled = false
 
     api.get('/bookings/equipment-availability', {
-      params: { facility: item.facility._id, equipment: item._id, date },
+      params: { equipment: item._id, date },
     })
       .then(({ data }) => {
         if (cancelled) return
         setSlots(data.slots)
-        setClosureReason(data.closureReason)
       })
       .catch(() => {
         if (cancelled) return
@@ -146,14 +151,27 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
       })
 
     return () => { cancelled = true }
-  }, [item.facility._id, item._id, date, refreshKey])
+  }, [item._id, date, refreshKey])
+
+  // Hours outside the linked booking are not the resident's to fill.
+  const withinLink = (slot) => {
+    if (!linked) return true
+    return new Date(slot.startTime) >= new Date(linked.startTime)
+      && new Date(slot.endTime) <= new Date(linked.endTime)
+  }
+
+  function changeLink(nextId) {
+    setLinkId(nextId)
+    setSlots(null)
+    setSelectedHours([])
+  }
 
   // A slot only counts as free if it can cover the quantity being asked for,
   // so raising the quantity can invalidate a selection made at a lower one.
-  const fits = (slot) => slot.available && slot.remaining >= quantity
+  const fits = (slot) => slot.available && slot.remaining >= quantity && withinLink(slot)
 
   function changeDate(nextDate) {
-    setDate(nextDate)
+    setOwnDate(nextDate)
     setSlots(null)
     setSelectedHours([])
   }
@@ -203,10 +221,10 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
     setSubmitting(true)
     try {
       await onSubmit({
-        facilityId: item.facility._id,
         equipmentId: item._id,
         equipmentName: item.name,
         quantity,
+        linkedBooking: linkId || undefined,
         startTime: selectedSlots[0].startTime,
         endTime: selectedSlots[selectedSlots.length - 1].endTime,
         purpose,
@@ -220,7 +238,7 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
     }
   }
 
-  const nothingFits = !loadingSlots && !closureReason && slots.every((s) => !fits(s))
+  const nothingFits = !loadingSlots && slots.every((s) => !fits(s))
 
   return (
     <div style={{
@@ -238,10 +256,40 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
         </h3>
         <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-md)' }}>
           Choose how many you need, then pick the hours you need them for.
-          Collect from {item.facility?.name}.
+          {item.facility?.name ? ` Collect from ${item.facility.name}.` : ''}
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+          <label style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+            For one of my bookings <span style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
+            <select
+              value={linkId}
+              onChange={(e) => changeLink(e.target.value)}
+              style={{ ...inputStyle, width: '100%', marginTop: '4px' }}
+              disabled={linkableBookings.length === 0}
+            >
+              <option value="">
+                {linkableBookings.length === 0 ? 'No approved bookings to link to' : 'Not for a booking — just borrowing'}
+              </option>
+              {linkableBookings.map((b) => (
+                <option key={b._id} value={b._id}>
+                  {b.facility?.name ?? 'Booking'} — {new Date(b.startTime).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                  {' '}{new Date(b.startTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {linked && (
+            <div style={{
+              backgroundColor: 'var(--color-primary-light)', color: 'var(--color-primary-dark)',
+              padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)',
+              fontSize: 'var(--font-size-sm)',
+            }}>
+              Date is set by that booking. You can only pick hours inside it.
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
             <label style={{ flex: 1, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
               Date
@@ -251,8 +299,13 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
                 value={date}
                 min={toDateInputValue(today)}
                 max={toDateInputValue(maxDate)}
+                disabled={Boolean(linked)}
                 onChange={(e) => changeDate(e.target.value)}
-                style={{ ...inputStyle, width: '100%', marginTop: '4px' }}
+                style={{
+                  ...inputStyle, width: '100%', marginTop: '4px',
+                  backgroundColor: linked ? 'var(--color-bg)' : undefined,
+                  cursor: linked ? 'not-allowed' : undefined,
+                }}
               />
             </label>
             <label style={{ width: '110px', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
@@ -276,14 +329,6 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
 
             {loadingSlots ? (
               <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Loading times…</p>
-            ) : closureReason ? (
-              <div style={{
-                backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-text)',
-                padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)',
-                fontSize: 'var(--font-size-sm)',
-              }}>
-                {item.facility?.name} is closed on this date — {closureReason}. Try another day.
-              </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-xs)' }}>
                 {slots.map((slot) => (
@@ -297,7 +342,7 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
               </div>
             )}
 
-            {!loadingSlots && !closureReason && (
+            {!loadingSlots && (
               <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-xs)', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
                 <span><Swatch bg="var(--color-surface)" border="var(--color-border-strong)" /> Enough free</span>
                 <span><Swatch bg="var(--color-primary)" border="var(--color-primary)" /> Selected</span>
@@ -307,7 +352,9 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
 
             {nothingFits && (
               <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginTop: 'var(--space-sm)' }}>
-                No hour on this date has {quantity} free. Ask for fewer, or try another day.
+                {linked
+                  ? `No hour inside that booking has ${quantity} free. Ask for fewer, or unlink to borrow at another time.`
+                  : `No hour on this date has ${quantity} free. Ask for fewer, or try another day.`}
               </p>
             )}
           </div>
@@ -351,14 +398,27 @@ function EquipmentRequestModal({ item, onClose, onSubmit }) {
 
 function ResidentEquipment() {
   const [equipment, setEquipment] = useState([])
+  const [linkableBookings, setLinkableBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
   const [confirmation, setConfirmation] = useState(null)
 
   useEffect(() => {
-    api.get('/facilities/equipment')
-      .then(({ data }) => setEquipment(data))
+    Promise.all([
+      api.get('/equipment'),
+      api.get('/resident/bookings'),
+    ])
+      .then(([equipmentRes, bookingsRes]) => {
+        setEquipment(equipmentRes.data)
+        // Only a resident's own approved, still-upcoming facility bookings are
+        // worth offering as something to attach equipment to.
+        setLinkableBookings(
+          bookingsRes.data
+            .filter((b) => b.bookingType !== 'Equipment' && b.status === 'Approved' && new Date(b.endTime) > new Date())
+            .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+        )
+      })
       .catch(() => toast.error('Could not load equipment'))
       .finally(() => setLoading(false))
   }, [])
@@ -367,9 +427,9 @@ function ResidentEquipment() {
     `${item.name} ${item.facility?.name ?? ''}`.toLowerCase().includes(query.toLowerCase())
   )
 
-  async function handleSubmitRequest({ facilityId, equipmentId, equipmentName, quantity, startTime, endTime, purpose }) {
+  async function handleSubmitRequest({ equipmentId, equipmentName, quantity, linkedBooking, startTime, endTime, purpose }) {
     try {
-      await api.post('/bookings', { facility: facilityId, equipmentId, quantity, startTime, endTime, purpose })
+      await api.post('/bookings', { equipmentId, quantity, linkedBooking, startTime, endTime, purpose })
       setSelectedItem(null)
       setConfirmation(`Request sent for ${quantity} × ${equipmentName}!`)
       toast.success('Equipment request submitted!')
@@ -425,6 +485,7 @@ function ResidentEquipment() {
       {selectedItem && (
         <EquipmentRequestModal
           item={selectedItem}
+          linkableBookings={linkableBookings}
           onClose={() => setSelectedItem(null)}
           onSubmit={handleSubmitRequest}
         />

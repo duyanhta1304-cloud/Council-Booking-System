@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, StatusBadge, Button, inputStyle, labelStyle } from '../../components/ui'
+import { PageHeader, Card, StatusBadge, Button, RadioGroup, PRIORITY_OPTIONS, PRIORITY_TONES, inputStyle, labelStyle } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 const COLUMNS = ['Pending', 'In Progress', 'Completed', 'Cancelled']
 const COLUMN_TONE = { Pending: 'danger', 'In Progress': 'warning', Completed: 'success', Cancelled: 'neutral' }
+const PRIORITY_TONE = { High: 'danger', Medium: 'warning', Low: 'success' }
+
+// "Move →" walks this order; Cancelled is deliberately not on it, since
+// cancelling is a decision, not the next step after finishing.
+const PROGRESSION = ['Pending', 'In Progress', 'Completed']
 
 // Shared by the assignee dropdown and its read-only twin on completed tasks,
 // so a card keeps the same shape once it stops being editable.
+const linkButtonStyle = (color) => ({
+  background: 'none', border: 'none', color,
+  fontSize: 'var(--font-size-xs)', cursor: 'pointer', padding: 0,
+})
+
 const assigneeFieldStyle = (assignedTo) => ({
   ...inputStyle,
   width: '100%',
@@ -69,14 +79,16 @@ function ReportIssueModal({ facilities, staff, onClose, onCreated }) {
             Description
             <textarea rows={3} required value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, width: '100%', marginTop: '4px', resize: 'vertical' }} placeholder="Describe the issue..." />
           </label>
-          <label style={labelStyle}>
+          <div style={labelStyle}>
             Priority
-            <select value={priority} onChange={(e) => setPriority(e.target.value)} style={{ ...inputStyle, marginTop: '4px' }}>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </label>
+            <RadioGroup
+              name="priority"
+              value={priority}
+              options={PRIORITY_OPTIONS}
+              onChange={setPriority}
+              tones={PRIORITY_TONES}
+            />
+          </div>
           <label style={labelStyle}>
             Assign to
             <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} style={{ ...inputStyle, marginTop: '4px' }}>
@@ -130,18 +142,29 @@ function MaintenanceBoard() {
     }
   }
 
-  const advance = async (id, currentStatus) => {
-    const idx = COLUMNS.indexOf(currentStatus)
-    if (idx >= COLUMNS.length - 1) return
-    const nextStatus = COLUMNS[idx + 1]
+  const setStatus = async (id, nextStatus, message) => {
     try {
       const { data } = await api.patch(`/maintenance/${id}`, { status: nextStatus })
       setTasks((prev) => prev.map((t) => (t._id === id ? data : t)))
-      toast.success(`Moved to ${nextStatus}`)
+      toast.success(message)
     } catch {
       toast.error('Could not update task')
     }
   }
+
+  const advance = (id, currentStatus) => {
+    const idx = PROGRESSION.indexOf(currentStatus)
+    if (idx === -1 || idx >= PROGRESSION.length - 1) return
+    const nextStatus = PROGRESSION[idx + 1]
+    return setStatus(id, nextStatus, `Moved to ${nextStatus}`)
+  }
+
+  const cancel = (id) => {
+    if (!window.confirm('Cancel this maintenance task? It will be marked Cancelled, not deleted.')) return
+    return setStatus(id, 'Cancelled', 'Maintenance task cancelled')
+  }
+
+  const reopen = (id) => setStatus(id, 'Pending', 'Task reopened')
 
   if (loading) return <p>Loading...</p>
 
@@ -169,8 +192,14 @@ function MaintenanceBoard() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
               {tasks.filter((t) => t.status === col).map((t) => (
                 <Card key={t._id} style={{ padding: 'var(--space-sm)' }}>
-                  <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', fontWeight: 'var(--font-weight-medium)', marginBottom: '4px' }}>
-                    {t.facility?.name ?? 'Unknown facility'}
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                    gap: 'var(--space-xs)', marginBottom: '4px',
+                  }}>
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', fontWeight: 'var(--font-weight-medium)' }}>
+                      {t.facility?.name ?? 'Unknown facility'}
+                    </div>
+                    <StatusBadge label={t.priority ?? 'Medium'} tone={PRIORITY_TONE[t.priority ?? 'Medium']} />
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
                     {t.description}
@@ -192,16 +221,28 @@ function MaintenanceBoard() {
                   )}
 
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-sm)' }}>
                     <StatusBadge label={col} tone={COLUMN_TONE[col]} />
-                    {col !== 'Completed' && col !== 'Cancelled' && (
-                      <button
-                        onClick={() => advance(t._id, t.status)}
-                        style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 'var(--font-size-xs)', cursor: 'pointer', padding: 0 }}
-                      >
-                        Move →
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                      {col === 'Cancelled' ? (
+                        <button onClick={() => reopen(t._id)} style={linkButtonStyle('var(--color-primary)')}>
+                          Reopen
+                        </button>
+                      ) : (
+                        <>
+                          {col !== 'Completed' && (
+                            <button onClick={() => cancel(t._id)} style={linkButtonStyle('var(--color-danger-text)')}>
+                              Cancel
+                            </button>
+                          )}
+                          {col !== 'Completed' && (
+                            <button onClick={() => advance(t._id, t.status)} style={linkButtonStyle('var(--color-primary)')}>
+                              Move →
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </Card>
               ))}

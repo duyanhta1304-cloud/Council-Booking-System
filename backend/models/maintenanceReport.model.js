@@ -26,10 +26,21 @@ const maintenanceReportSchema = new mongoose.Schema(
             required: true,
             default: Date.now,
         },
+        priority: {
+            type: String,
+            enum: ["Low", "Medium", "High"],
+            default: "Medium",
+        },
         status: {
             type: String,
             enum : ["Pending", "In Progress", "Completed", "Cancelled"],
             default: "Pending",
+        },
+        // Stamped when the task reaches Completed, so reports can measure how
+        // long facilities actually spend under maintenance.
+        completedAt: {
+            type: Date,
+            required: false,
         }
     },
     {

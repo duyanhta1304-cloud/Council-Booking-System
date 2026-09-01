@@ -12,39 +12,30 @@ const roomSchema = mongoose.Schema(
         }
     }
 );
-const equipmentSchema = new mongoose.Schema({
-    name: {type: String, required: true},
-    description: { type: String, required: false },
-    // The attribute a room has no use for: a room is taken whole, so its
-    // availability is a yes/no. Equipment is stocked in counts, so its
-    // availability is "how many of the N units are still free this hour".
-    quantity: { type: Number, required: true, default: 1, min: 1 },
-    // Lets an admin pull a broken item out of circulation without deleting it
-    // or taking the whole facility offline.
-    status: {
-        type: String,
-        enum: ["Available", "Under Maintenance", "Retired"],
-        default: "Available",
-    }
-});
 
 const facilitiesSchema = mongoose.Schema(
     {
-        name: { 
-            type: String, 
-            required: true 
+        name: {
+            type: String,
+            required: true
         },
-        description: { 
-            type: String, 
-            required: true 
+        description: {
+            type: String,
+            required: true
         },
-        status: { 
-            type: String, 
+        status: {
+            type: String,
             enum: ["Active", "Inactive", "Under Maintenance"],
-            default: "Active" 
+            default: "Active"
         },
-        rooms: [roomSchema],
-        equipment: [equipmentSchema]
+        // A data URI ("data:image/jpeg;base64,...") rather than a file path, so
+        // the picture travels with the document and nothing depends on an
+        // uploads folder existing. The API caps the size on the way in.
+        image: {
+            type: String,
+            required: false,
+        },
+        rooms: [roomSchema]
     },
     {
         timestamps: true

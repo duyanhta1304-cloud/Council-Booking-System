@@ -9,31 +9,126 @@ function availabilityTone(status) {
   return 'danger'
 }
 
-function FacilityCard({ facility, onRequestBooking }) {
-  const isClosed = facility.status !== 'Active'
+const DAY_MS = 1000 * 60 * 60 * 24
+
+function startOfToday() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return today
+}
+
+// Whole days from today to `date`, so "closes tomorrow" doesn't read as
+// "closes in 0 days" just because the clock hasn't come round yet.
+function daysUntil(date) {
+  const target = new Date(date)
+  target.setHours(0, 0, 0, 0)
+  return Math.round((target - startOfToday()) / DAY_MS)
+}
+
+function inDays(count) {
+  if (count <= 0) return 'today'
+  if (count === 1) return 'tomorrow'
+  return `in ${count} days`
+}
+
+const formatDay = (d) =>
+  new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+
+// The closure that matters to someone looking at this card right now: the one
+// running today, or failing that the next one coming.
+function relevantClosure(closures) {
+  const now = new Date()
+  const live = closures.filter((c) => new Date(c.endDate) >= now)
+  if (live.length === 0) return null
+
+  const active = live.find((c) => new Date(c.startDate) <= now)
+  if (active) return { closure: active, active: true }
+
+  const next = live.reduce((soonest, c) =>
+    new Date(c.startDate) < new Date(soonest.startDate) ? c : soonest
+  )
+  return { closure: next, active: false }
+}
+
+function ClosureNotice({ closures }) {
+  const relevant = relevantClosure(closures)
+  if (!relevant) return null
+
+  const { closure, active } = relevant
+  // Inclusive of the last day: a closure ending today still shuts today.
+  const reopensIn = daysUntil(closure.endDate) + 1
+  const startsIn = daysUntil(closure.startDate)
 
   return (
-    <Card>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-sm)' }}>
-        <div>
-          <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-semibold)' }}>
-            {facility.name}
-          </h3>
-          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-            {facility.description}
-          </p>
-        </div>
-        <Badge tone={availabilityTone(facility.status)}>{facility.status}</Badge>
-      </div>
+    <div style={{
+      marginTop: 'var(--space-sm)',
+      backgroundColor: active ? 'var(--color-danger-bg)' : 'var(--color-warning-bg)',
+      color: active ? 'var(--color-danger-text)' : 'var(--color-warning-text)',
+      padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)',
+      fontSize: 'var(--font-size-xs)',
+    }}>
+      {active ? (
+        <>
+          <strong>Closed for {reopensIn} more {reopensIn === 1 ? 'day' : 'days'}</strong>
+          {' '}— reopens {formatDay(new Date(closure.endDate).getTime() + DAY_MS)}. {closure.reason}
+        </>
+      ) : (
+        <>
+          <strong>Closing {inDays(startsIn)}</strong>
+          {' '}— {formatDay(closure.startDate)} to {formatDay(closure.endDate)}. {closure.reason}
+        </>
+      )}
+    </div>
+  )
+}
 
-      <div style={{ marginTop: 'var(--space-md)' }}>
-        <button
-          style={{ ...buttonStyle, opacity: isClosed ? 0.5 : 1, cursor: isClosed ? 'not-allowed' : 'pointer' }}
-          disabled={isClosed}
-          onClick={() => onRequestBooking(facility)}
-        >
-          {isClosed ? 'Unavailable' : 'Request booking'}
-        </button>
+function FacilityCard({ facility, closures = [], onRequestBooking }) {
+  const closedNow = relevantClosure(closures)?.active ?? false
+  const isClosed = facility.status !== 'Active' || closedNow
+
+  return (
+    <Card style={{ padding: 0, overflow: 'hidden' }}>
+      {facility.image ? (
+        <img
+          src={facility.image}
+          alt=""
+          style={{ width: '100%', height: '150px', objectFit: 'cover', display: 'block' }}
+        />
+      ) : (
+        <div style={{
+          height: '150px', backgroundColor: 'var(--color-primary-light)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--color-primary)', fontFamily: 'var(--font-family-heading)',
+          fontSize: 'var(--font-size-2xl)',
+        }}>
+          {facility.name.charAt(0)}
+        </div>
+      )}
+
+      <div style={{ padding: 'var(--space-lg)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-sm)' }}>
+          <div>
+            <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-semibold)' }}>
+              {facility.name}
+            </h3>
+            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+              {facility.description}
+            </p>
+          </div>
+          <Badge tone={availabilityTone(facility.status)}>{facility.status}</Badge>
+        </div>
+
+        <ClosureNotice closures={closures} />
+
+        <div style={{ marginTop: 'var(--space-md)' }}>
+          <button
+            style={{ ...buttonStyle, opacity: isClosed ? 0.5 : 1, cursor: isClosed ? 'not-allowed' : 'pointer' }}
+            disabled={isClosed}
+            onClick={() => onRequestBooking(facility)}
+          >
+            {closedNow ? 'Closed' : isClosed ? 'Unavailable' : 'Request booking'}
+          </button>
+        </div>
       </div>
     </Card>
   )
@@ -304,14 +399,29 @@ function BookingRequestModal({ facility, onClose, onSubmit }) {
 
 function ResidentFacilities() {
   const [facilities, setFacilities] = useState([])
+  const [closuresByFacility, setClosuresByFacility] = useState({})
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [selectedFacility, setSelectedFacility] = useState(null)
   const [confirmation, setConfirmation] = useState(null)
 
   useEffect(() => {
-    api.get('/facilities')
-      .then(({ data }) => setFacilities(data))
+    Promise.all([
+      api.get('/facilities'),
+      api.get('/closures'),
+    ])
+      .then(([facilitiesRes, closuresRes]) => {
+        setFacilities(facilitiesRes.data)
+
+        // Group closures by facility so each card only reads its own.
+        const grouped = {}
+        for (const closure of closuresRes.data) {
+          const id = closure.facility?._id ?? closure.facility
+          if (!id) continue
+          ;(grouped[id] ??= []).push(closure)
+        }
+        setClosuresByFacility(grouped)
+      })
       .catch(() => toast.error('Could not load facilities'))
       .finally(() => setLoading(false))
   }, [])
@@ -365,7 +475,12 @@ function ResidentFacilities() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--space-md)' }}>
         {filtered.map((f) => (
-          <FacilityCard key={f._id} facility={f} onRequestBooking={setSelectedFacility} />
+          <FacilityCard
+            key={f._id}
+            facility={f}
+            closures={closuresByFacility[f._id] ?? []}
+            onRequestBooking={setSelectedFacility}
+          />
         ))}
       </div>
 

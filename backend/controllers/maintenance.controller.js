@@ -30,11 +30,17 @@ export async function createMaintenance(req, res) {
 export async function updateMaintenance(req, res) {
     try {
         // Only allow safe fields to be updated — never expose raw req.body to the DB
-        const { status, assignedTo, description } = req.body;
+        const { status, assignedTo, description, priority } = req.body;
         const allowedUpdate = {};
         if (status !== undefined) allowedUpdate.status = status;
         if (assignedTo !== undefined) allowedUpdate.assignedTo = assignedTo;
         if (description !== undefined) allowedUpdate.description = description;
+        if (priority !== undefined) allowedUpdate.priority = priority;
+
+        // Reaching Completed is what closes the clock the maintenance-time
+        // report measures; moving back off Completed reopens it.
+        if (status === "Completed") allowedUpdate.completedAt = new Date();
+        else if (status !== undefined) allowedUpdate.completedAt = null;
 
         const updated = await MaintenanceReport.findByIdAndUpdate(
             req.params.id,

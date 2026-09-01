@@ -42,7 +42,25 @@ function FacilityClosures() {
     }
   }
 
+  const handleCancel = async (closure) => {
+    const name = closure.facility?.name ?? 'this facility'
+    if (!window.confirm(
+      `Call off the closure for ${name}?\n\nThe facility reopens for those dates, but bookings already cancelled by this closure stay cancelled — those residents were notified.`
+    )) return
+
+    try {
+      await api.delete(`/closures/${closure._id}`)
+      setClosures((prev) => prev.filter((c) => c._id !== closure._id))
+      toast.success('Closure cancelled — the facility is open again')
+    } catch {
+      toast.error('Could not cancel closure')
+    }
+  }
+
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+
+  // A closure whose end date has passed is history — reopening it means nothing.
+  const isPast = (closure) => new Date(closure.endDate) < new Date()
 
   return (
     <div>
@@ -106,6 +124,7 @@ function FacilityClosures() {
                     <th style={tableStyles.th}>From</th>
                     <th style={tableStyles.th}>To</th>
                     <th style={tableStyles.th}>Reason</th>
+                    <th style={tableStyles.th}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -115,6 +134,15 @@ function FacilityClosures() {
                       <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatDate(c.startDate)}</td>
                       <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatDate(c.endDate)}</td>
                       <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{c.reason}</td>
+                      <td style={tableStyles.td}>
+                        {isPast(c) ? (
+                          <StatusBadge label="Ended" tone="neutral" />
+                        ) : (
+                          <Button variant="secondary" style={{ padding: '4px 10px' }} onClick={() => handleCancel(c)}>
+                            Cancel
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

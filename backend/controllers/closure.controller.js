@@ -62,3 +62,25 @@ export async function createClosure(req, res) {
         res.status(500).json({ message: "Could not schedule closure" });
     }
 }
+
+// CANCEL A CLOSURE
+// The facility reopens for those dates, but bookings cancelled when the closure
+// was scheduled stay cancelled — those residents were already told, and their
+// slots may since have gone to someone else. They can rebook.
+export async function deleteClosure(req, res) {
+    try {
+        const closure = await Closure.findByIdAndDelete(req.params.id);
+        if (!closure) return res.status(404).json({ message: "Closure not found" });
+
+        await AuditLog.create({
+            action: "Cancelled Closure",
+            principal: req.user.userId,
+            details: closure._id.toString(),
+        });
+
+        res.json({ message: "Closure cancelled" });
+    } catch (error) {
+        console.log("Error cancelling closure:", error);
+        res.status(500).json({ message: "Could not cancel closure" });
+    }
+}

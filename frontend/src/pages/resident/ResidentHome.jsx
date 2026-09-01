@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import api from '../../lib/axios'
 import { useAuth } from '../../context/authContext'
-import { PageHeader, Card, Badge, tableStyles, buttonStyle } from '../../components/ui'
+import { PageHeader, Card, Badge, BookingSubject, tableStyles, buttonStyle } from '../../components/ui'
+import { ChartCard, RankedBarChart, StatusDonut, CHART_COLORS } from '../../components/charts'
 import toast from 'react-hot-toast'
 
 function statusTone(status) {
@@ -15,26 +16,27 @@ function statusTone(status) {
 function ResidentHome() {
   const { user } = useAuth()
   const [upcomingBookings, setUpcomingBookings] = useState([])
-  const [notices, setNotices] = useState([])
+  const [charts, setCharts] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Closure notices used to live here, but they were about facilities the
+  // resident may never book. They now sit on the facility cards themselves,
+  // where the reader is actually choosing.
   useEffect(() => {
-    Promise.all([
-      api.get('/resident/dashboard'),
-      api.get('/closures'),
-    ])
-      .then(([dashRes, closuresRes]) => {
-        setUpcomingBookings(dashRes.data.upcomingBookings || [])
-        // Show closures as notices — only upcoming/active ones
-        const now = new Date()
-        const activeClosures = closuresRes.data.filter(
-          (c) => new Date(c.endDate) >= now
-        )
-        setNotices(activeClosures)
+    api.get('/resident/dashboard')
+      .then(({ data }) => {
+        setUpcomingBookings(data.upcomingBookings || [])
+        setCharts({
+          myHoursByFacility: data.myHoursByFacility ?? [],
+          myBookingsByStatus: data.myBookingsByStatus ?? [],
+        })
       })
       .catch(() => toast.error('Could not load home data'))
       .finally(() => setLoading(false))
   }, [])
+
+  const noHours = charts?.myHoursByFacility.length === 0
+  const noStatuses = charts?.myBookingsByStatus.every((d) => d.value === 0)
 
   const formatDate = (d) => new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   const formatTime = (d) => new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
@@ -53,17 +55,27 @@ function ResidentHome() {
         }
       />
 
-      {notices.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
-          {notices.map((n) => (
-            <div key={n._id} style={{
-              backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-text)',
-              padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)',
-              fontSize: 'var(--font-size-sm)',
-            }}>
-              ⚠️ <strong>{n.facility?.name}</strong> is closed from {formatDate(n.startDate)} to {formatDate(n.endDate)}: {n.reason}
-            </div>
-          ))}
+      {charts && (
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)',
+        }}>
+          <ChartCard
+            title="Where you've booked"
+            subtitle="Hours booked over the last 30 days"
+            height={Math.max(180, charts.myHoursByFacility.length * 38)}
+            empty={noHours ? "You haven't booked anything in the last 30 days." : null}
+          >
+            <RankedBarChart data={charts.myHoursByFacility} unit="h" color={CHART_COLORS.primary} />
+          </ChartCard>
+
+          <ChartCard
+            title="Your requests"
+            subtitle="How your last 30 days of requests went"
+            empty={noStatuses ? 'No requests in the last 30 days.' : null}
+          >
+            <StatusDonut data={charts.myBookingsByStatus} />
+          </ChartCard>
         </div>
       )}
 
@@ -89,7 +101,7 @@ function ResidentHome() {
             <table style={tableStyles.table}>
               <thead>
                 <tr>
-                  <th style={tableStyles.th}>Facility</th>
+                  <th style={tableStyles.th}>Booked</th>
                   <th style={tableStyles.th}>Date</th>
                   <th style={tableStyles.th}>Time</th>
                   <th style={tableStyles.th}>Status</th>
@@ -98,7 +110,7 @@ function ResidentHome() {
               <tbody>
                 {upcomingBookings.map((b) => (
                   <tr key={b._id}>
-                    <td style={tableStyles.td}>{b.facility?.name ?? '—'}</td>
+                    <td style={tableStyles.td}><BookingSubject booking={b} /></td>
                     <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatDate(b.startTime)}</td>
                     <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{formatTime(b.startTime)}</td>
                     <td style={tableStyles.td}>

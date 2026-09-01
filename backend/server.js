@@ -2,6 +2,7 @@ import express from "express"
 import dotenv from "dotenv"
 import authRoute from "./routes/login.route.js"
 import facilityRoute from "./routes/facility.route.js";
+import equipmentRoute from "./routes/equipment.route.js";
 import closureRoute from "./routes/closure.route.js";
 import bookingRoute from "./routes/booking.route.js";
 import maintenanceRoute from "./routes/maintenance.route.js";
@@ -36,11 +37,15 @@ app.use(cors({
     credentials: true // required for the httpOnly auth cookie
 }));
 
-app.use(express.json())
+// Facility images arrive inline as base64 data URIs, which sail past the 100kb
+// default. The facility controller enforces the real 2MB cap; this just has to
+// be roomy enough for the encoded payload to reach it.
+app.use(express.json({ limit: "5mb" }))
 app.use(cookieParser())
 
 app.use("/api/auth", authRoute)
 app.use("/api/facilities", facilityRoute)
+app.use("/api/equipment", equipmentRoute)
 app.use("/api/closures", closureRoute);
 app.use("/api/bookings", bookingRoute);
 app.use("/api/maintenance", maintenanceRoute);

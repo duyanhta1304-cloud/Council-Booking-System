@@ -1,5 +1,3 @@
-import { useNavigate } from 'react-router'
-import { useState } from 'react'
 export function DetailRow({ label, value }) {
   return (
     <div
@@ -52,10 +50,17 @@ export function bookingSubject(booking) {
   }
 
   const items = (booking.equipment ?? []).map((e) => `${e.quantity} × ${e.name}`).join(', ')
-  return {
-    primary: items || 'Equipment',
-    secondary: booking.facility?.name ? `from ${booking.facility.name}` : null,
-  }
+
+  // What the gear is for matters more than where it's picked up, so a linked
+  // booking wins the subtitle when there is one.
+  const linkedName = booking.linkedBooking?.facility?.name
+  const secondary = linkedName
+    ? `for ${linkedName} booking`
+    : booking.facility?.name
+      ? `from ${booking.facility.name}`
+      : null
+
+  return { primary: items || 'Equipment', secondary }
 }
 
 export function BookingSubject({ booking }) {
@@ -70,6 +75,53 @@ export function BookingSubject({ booking }) {
       )}
     </div>
   )
+}
+
+// A radio group styled as segmented buttons. Radios rather than a dropdown
+// because every option is worth seeing at once — the reader shouldn't have to
+// open a menu to learn that "High" is available.
+export function RadioGroup({ name, value, options, onChange, tones = {} }) {
+  return (
+    <div style={{ display: 'flex', gap: 'var(--space-xs)', marginTop: '4px' }}>
+      {options.map((option) => {
+        const selected = value === option
+        const accent = tones[option] ?? 'var(--color-primary)'
+
+        return (
+          <label
+            key={option}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              padding: '8px 10px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
+              border: `1px solid ${selected ? accent : 'var(--color-border)'}`,
+              backgroundColor: selected ? accent : 'var(--color-surface)',
+              color: selected ? 'var(--color-text-on-dark)' : 'var(--color-text-secondary)',
+              fontSize: 'var(--font-size-sm)', textTransform: 'none', letterSpacing: 'normal',
+              fontFamily: 'inherit', transition: 'all var(--transition-fast)',
+            }}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option}
+              checked={selected}
+              onChange={() => onChange(option)}
+              style={{ accentColor: accent, margin: 0 }}
+            />
+            {option}
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
+export const PRIORITY_OPTIONS = ['Low', 'Medium', 'High']
+
+export const PRIORITY_TONES = {
+  Low: 'var(--color-success)',
+  Medium: 'var(--color-warning)',
+  High: 'var(--color-danger)',
 }
 
 export function PageHeader({ title, description, action }) {

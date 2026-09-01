@@ -2,6 +2,7 @@ import Booking from "../models/booking.model.js";
 import AuditLog from "../models/auditLog.model.js";
 import Closure from "../models/closure.model.js";
 import Facility from "../models/facilities.model.js";
+import Equipment from "../models/equipment.model.js";
 
 // Bookable hours are fixed one-hour blocks from 08:00 to 20:00, so the last
 // block starts at 19:00. Kept here so the API and the UI agree on one source.
@@ -124,26 +125,26 @@ function unitsHeld(bookings, equipmentId, start, end) {
         }, 0);
 }
 
-// Every booking that could be holding units of this item on this day.
-function equipmentBookingsOnDay(facility, equipmentId, dayStart, dayEnd) {
+// Every booking that could be holding units of this item in this window.
+// Equipment is booked in its own right, so this is not scoped to a facility.
+function equipmentBookingsIn(equipmentId, from, to) {
     return Booking.find({
-        facility,
         bookingType: "Equipment",
         "equipment.equipmentId": equipmentId,
         status: { $in: BLOCKING_STATUSES },
-        startTime: { $lt: dayEnd },
-        endTime: { $gt: dayStart },
+        startTime: { $lt: to },
+        endTime: { $gt: from },
     }).select("startTime endTime equipment");
 }
 
-// GET /api/bookings/equipment-availability?facility=<id>&equipment=<id>&date=YYYY-MM-DD
+// GET /api/bookings/equipment-availability?equipment=<id>&date=YYYY-MM-DD
 // Same shape as getAvailability, but each slot also carries how many units are
 // left — the resident picks a quantity, not just a time.
 export async function getEquipmentAvailability(req, res) {
     try {
-        const { facility, equipment, date } = req.query;
-        if (!facility || !equipment || !date) {
-            return res.status(400).json({ message: "facility, equipment and date are required" });
+        const { equipment, date } = req.query;
+        if (!equipment || !date) {
+            return res.status(400).json({ message: "equipment and date are required" });
         }
 
         const dayStart = startOfDay(new Date(`${date}T00:00:00`));
@@ -152,28 +153,19 @@ export async function getEquipmentAvailability(req, res) {
         const dayEnd = new Date(dayStart);
         dayEnd.setDate(dayEnd.getDate() + 1);
 
-        const facilityDoc = await Facility.findById(facility).select("name status equipment");
-        if (!facilityDoc) return res.status(404).json({ message: "Facility not found" });
-
-        const item = facilityDoc.equipment.id(equipment);
+        const item = await Equipment.findById(equipment).populate("facility", "name status");
         if (!item) return res.status(404).json({ message: "Equipment not found" });
 
-        const [bookings, closures] = await Promise.all([
-            equipmentBookingsOnDay(facility, item._id, dayStart, dayEnd),
-            Closure.find({ facility, startDate: { $lt: dayEnd }, endDate: { $gt: dayStart } }).select("reason"),
-        ]);
+        const bookings = await equipmentBookingsIn(item._id, dayStart, dayEnd);
 
         const now = new Date();
-        const closure = closures[0];
         const slots = [];
 
         for (const { hour, slotStart, slotEnd } of hourSlots(dayStart)) {
             const remaining = item.quantity - unitsHeld(bookings, item._id, slotStart, slotEnd);
 
             let reason = null;
-            if (facilityDoc.status !== "Active") reason = facilityDoc.status;
-            else if (item.status !== "Available") reason = item.status;
-            else if (closure) reason = "Closed";
+            if (item.status !== "Available") reason = item.status;
             else if (slotEnd <= now) reason = "Past";
             else if (remaining <= 0) reason = "All out";
 
@@ -189,10 +181,8 @@ export async function getEquipmentAvailability(req, res) {
         }
 
         res.json({
-            facility: { _id: facilityDoc._id, name: facilityDoc.name, status: facilityDoc.status },
             equipment: { _id: item._id, name: item.name, quantity: item.quantity, status: item.status },
             date,
-            closureReason: closure?.reason ?? null,
             slots,
         });
     } catch (error) {
@@ -203,12 +193,13 @@ export async function getEquipmentAvailability(req, res) {
 
 export async function createBooking(req, res) {
     try {
-        const { facility, startTime, endTime, purpose, equipmentId, quantity } = req.body;
-        if (!facility || !startTime || !endTime) return res.status(400).json({ message: "Missing fields" });
+        const { facility, startTime, endTime, purpose, equipmentId, quantity, linkedBooking } = req.body;
+        if (!startTime || !endTime) return res.status(400).json({ message: "Missing fields" });
 
         // An equipment request is told apart by carrying an item id; everything
-        // else is a request for the space itself.
+        // else is a request for the space itself. Only the latter needs a facility.
         const isEquipment = Boolean(equipmentId);
+        if (!isEquipment && !facility) return res.status(400).json({ message: "Missing fields" });
 
         const start = new Date(startTime);
         const end = new Date(endTime);
@@ -230,18 +221,12 @@ export async function createBooking(req, res) {
             return res.status(400).json({ message: `Bookings must fall between ${OPENING_HOUR}:00 and ${CLOSING_HOUR}:00` });
         }
 
-        const facilityDoc = await Facility.findById(facility).select("status equipment");
-        if (!facilityDoc) return res.status(404).json({ message: "Facility not found" });
-        if (facilityDoc.status !== "Active") return res.status(409).json({ message: "That facility is not available for booking" });
-
-        const closure = await Closure.findOne({ facility, startDate: { $lt: end }, endDate: { $gt: start } });
-        if (closure) return res.status(409).json({ message: `Facility is closed: ${closure.reason}` });
-
         let item = null;
         let wanted = 0;
+        let link = null;
 
         if (isEquipment) {
-            item = facilityDoc.equipment.id(equipmentId);
+            item = await Equipment.findById(equipmentId);
             if (!item) return res.status(404).json({ message: "Equipment not found" });
             if (item.status !== "Available") return res.status(409).json({ message: `That item is ${item.status.toLowerCase()}` });
 
@@ -251,10 +236,26 @@ export async function createBooking(req, res) {
                 return res.status(400).json({ message: `Only ${item.quantity} of ${item.name} exist` });
             }
 
+            // Linking is optional, but a link that is offered must be the
+            // resident's own approved facility booking, and the gear must be
+            // wanted for a time that booking actually covers.
+            if (linkedBooking) {
+                link = await Booking.findOne({
+                    _id: linkedBooking,
+                    user: req.user.userId,
+                    bookingType: { $ne: "Equipment" },
+                    status: "Approved",
+                });
+                if (!link) return res.status(404).json({ message: "That approved booking is not one of yours" });
+                if (start < link.startTime || end > link.endTime) {
+                    return res.status(400).json({ message: "Equipment times must fall inside the booking you linked it to" });
+                }
+            }
+
             // Unlike a room, the item is not taken or free — it is counted. The
             // request fits only if every hour it spans still has `wanted` units
             // left, so check the tightest hour rather than the range as a whole.
-            const held = await equipmentBookingsOnDay(facility, item._id, start, end);
+            const held = await equipmentBookingsIn(item._id, start, end);
             for (const { slotStart, slotEnd } of hourSlots(startOfDay(start))) {
                 if (slotEnd <= start || slotStart >= end) continue;
                 const remaining = item.quantity - unitsHeld(held, item._id, slotStart, slotEnd);
@@ -265,6 +266,13 @@ export async function createBooking(req, res) {
                 }
             }
         } else {
+            const facilityDoc = await Facility.findById(facility).select("status");
+            if (!facilityDoc) return res.status(404).json({ message: "Facility not found" });
+            if (facilityDoc.status !== "Active") return res.status(409).json({ message: "That facility is not available for booking" });
+
+            const closure = await Closure.findOne({ facility, startDate: { $lt: end }, endDate: { $gt: start } });
+            if (closure) return res.status(409).json({ message: `Facility is closed: ${closure.reason}` });
+
             // Overlap test: an existing booking clashes when it starts before this
             // one ends and ends after this one starts.
             const clash = await Booking.findOne({
@@ -279,13 +287,16 @@ export async function createBooking(req, res) {
 
         const newBooking = await Booking.create({
             user: req.user.userId,
-            facility,
+            // An equipment booking borrows the item's home facility for display
+            // only, and stays facility-less when the item has no home.
+            facility: isEquipment ? (item.facility ?? undefined) : facility,
             startTime: start,
             endTime: end,
             purpose,
             status: "Pending",
             bookingType: isEquipment ? "Equipment" : "Facility",
             equipment: isEquipment ? [{ equipmentId: item._id, name: item.name, quantity: wanted }] : [],
+            linkedBooking: link?._id ?? null,
         });
         await AuditLog.create({
             action: isEquipment ? "Created Equipment Booking" : "Created Booking",
@@ -303,7 +314,10 @@ export async function getBookings(req, res) {
         const { status } = req.query;
         let query = {};
         if (status) query.status = status;
-        const bookings = await Booking.find(query).populate('user').populate('facility');
+        const bookings = await Booking.find(query)
+            .populate('user')
+            .populate('facility')
+            .populate({ path: 'linkedBooking', populate: { path: 'facility', select: 'name' } });
         res.json(bookings);
     } catch (error) { res.status(500).json({ message: "Error" }); }
 }

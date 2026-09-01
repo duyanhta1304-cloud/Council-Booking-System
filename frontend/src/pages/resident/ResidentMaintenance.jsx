@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, Button, inputStyle, labelStyle } from '../../components/ui'
+import { PageHeader, Card, Button, RadioGroup, PRIORITY_OPTIONS, PRIORITY_TONES, inputStyle, labelStyle } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 function ResidentMaintenance() {
@@ -68,14 +68,16 @@ function ResidentMaintenance() {
               placeholder="e.g. The air conditioning in Room A is not working..."
             />
           </label>
-          <label style={labelStyle}>
+          <div style={labelStyle}>
             Priority
-            <select value={priority} onChange={(e) => setPriority(e.target.value)} style={{ ...inputStyle, marginTop: '4px' }}>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </label>
+            <RadioGroup
+              name="priority"
+              value={priority}
+              options={PRIORITY_OPTIONS}
+              onChange={setPriority}
+              tones={PRIORITY_TONES}
+            />
+          </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-sm)' }}>
             <Button type="submit" variant="primary" disabled={submitting}>
               {submitting ? 'Submitting...' : 'Submit Report'}

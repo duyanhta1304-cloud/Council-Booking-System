@@ -28,6 +28,7 @@ function StaffMaintenance() {
   }, [])
 
   async function updateStatus(id, newStatus) {
+    if (newStatus === 'Cancelled' && !window.confirm('Cancel this maintenance task? It will be marked Cancelled, not deleted.')) return
     try {
       const { data } = await api.patch(`/maintenance/${id}`, { status: newStatus })
       setTasks((prev) => prev.map((t) => (t._id === id ? data : t)))
@@ -96,12 +97,20 @@ function StaffMaintenance() {
                         </button>
                       )}
                       {(t.status === 'Pending' || t.status === 'In Progress') && (
-                        <button
-                          style={{ ...buttonStyle, backgroundColor: 'var(--color-secondary)' }}
-                          onClick={() => updateStatus(t._id, 'Completed')}
-                        >
-                          Complete
-                        </button>
+                        <>
+                          <button
+                            style={{ ...buttonStyle, backgroundColor: 'var(--color-secondary)' }}
+                            onClick={() => updateStatus(t._id, 'Completed')}
+                          >
+                            Complete
+                          </button>
+                          <button
+                            style={{ ...buttonStyle, backgroundColor: 'var(--color-danger)' }}
+                            onClick={() => updateStatus(t._id, 'Cancelled')}
+                          >
+                            Cancel
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>

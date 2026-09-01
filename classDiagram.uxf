@@ -114,13 +114,15 @@
       <x>369</x>
       <y>639</y>
       <w>126</w>
-      <h>99</h>
+      <h>126</h>
     </coordinates>
     <panel_attributes>Facilities
 --
 - facilityId {key}
+- name
 - status
 - descripton
+- image
 --
 + checkAvailability()</panel_attributes>
     <additional_attributes/>
@@ -157,7 +159,8 @@
 - quantity
 - status
 --
-+ unitsFreeAt()</panel_attributes>
++ unitsFreeAt()
+bg=#f5ead8</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -166,7 +169,7 @@
       <x>369</x>
       <y>450</y>
       <w>126</w>
-      <h>126</h>
+      <h>144</h>
     </coordinates>
     <panel_attributes>Booking
 --
@@ -175,6 +178,7 @@
 - startTime
 - endTime
 - Status
+- linkedBookingId
 --
 + conflictDetect()
 + stockCheck()</panel_attributes>
@@ -186,17 +190,20 @@
       <x>162</x>
       <y>270</y>
       <w>153</w>
-      <h>126</h>
+      <h>162</h>
     </coordinates>
     <panel_attributes>Maintenance Report
 --
 - reportId {key}
 - description
 - dateReported
+- priority
 - status
+- completedAt
 - assignedStaffId
 --
 + assignTo()
++ cancel()
 </panel_attributes>
     <additional_attributes/>
   </element>
@@ -306,29 +313,29 @@ m2=1</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>306</x>
-      <y>729</y>
+      <y>756</y>
       <w>108</w>
-      <h>81</h>
+      <h>54</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 contains
 m1=1
 m2=*</panel_attributes>
-    <additional_attributes>90.0;10.0;90.0;40.0;10.0;40.0;10.0;70.0</additional_attributes>
+    <additional_attributes>94.0;9.0;94.0;27.0;4.0;27.0;4.0;36.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
       <x>423</x>
-      <y>729</y>
-      <w>99</w>
-      <h>81</h>
+      <y>756</y>
+      <w>117</w>
+      <h>54</h>
     </coordinates>
-    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
-manages
-m1=0
-m2=*</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;40.0;90.0;40.0;90.0;70.0</additional_attributes>
+    <panel_attributes>lt=-
+collected from
+m1=0..1
+m2=0..*</panel_attributes>
+    <additional_attributes>27.0;9.0;27.0;27.0;77.0;27.0;77.0;36.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
@@ -433,6 +440,35 @@ m1=1
 m2=0..*
 assigned to</panel_attributes>
     <additional_attributes>10.0;50.0;270.0;50.0;270.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>279</x>
+      <y>459</y>
+      <w>117</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>lt=-
+optionally for
+m1=0..1
+m2=0..*</panel_attributes>
+    <additional_attributes>90.0;18.0;18.0;18.0;18.0;72.0;90.0;72.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates>
+      <x>117</x>
+      <y>567</y>
+      <w>225</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>An Equipment booking may point at one
+of the resident's own APPROVED facility
+bookings, and must fall inside its hours.
+Optional — equipment also stands alone.
+bg=#f5ead8</panel_attributes>
+    <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>

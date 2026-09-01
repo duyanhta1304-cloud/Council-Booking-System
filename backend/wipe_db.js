@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import User from "./models/user.model.js";
 import Facility from "./models/facilities.model.js";
+import Equipment from "./models/equipment.model.js";
 import Booking from "./models/booking.model.js";
 import Closure from "./models/closure.model.js";
 import MaintenanceReport from "./models/maintenanceReport.model.js";
@@ -30,6 +31,9 @@ async function wipeDb() {
         console.log("Wiping Facilities...");
         await Facility.deleteMany({});
         
+        console.log("Wiping Equipment...");
+        await Equipment.deleteMany({});
+
         console.log("Wiping Bookings...");
         await Booking.deleteMany({});
         

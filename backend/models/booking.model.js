@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
 
-// One line of an equipment booking. Equipment lives as a subdocument of a
-// Facility, so it is addressed by its subdocument id plus the parent facility;
-// `name` is copied so a booking still reads correctly if the item is later
-// renamed or removed from the facility.
+// One line of an equipment booking. `quantity` is the attribute a room booking
+// has no use for: rooms are taken whole, equipment is taken in counts. `name`
+// is copied so a past booking still reads correctly if the item is renamed.
 const bookedEquipmentSchema = new mongoose.Schema(
     {
         equipmentId: {
             type: mongoose.Schema.Types.ObjectId,
+            ref: "Equipment",
             required: true,
         },
         name: {
@@ -30,14 +30,15 @@ const bookingSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
+        // Required for a facility booking, absent for standalone equipment —
+        // equipment is booked in its own right and need not involve a space.
         facility: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Facility",
-            required: true,
+            required: function () {
+                return this.bookingType !== "Equipment";
+            },
         },
-        // An equipment booking still names a facility — that's where the item
-        // is collected from — but it holds stock, not the space itself, so the
-        // two kinds never conflict with each other.
         bookingType: {
             type: String,
             enum: ["Facility", "Equipment"],
@@ -46,6 +47,15 @@ const bookingSchema = new mongoose.Schema(
         equipment: {
             type: [bookedEquipmentSchema],
             default: [],
+        },
+        // Optionally ties an equipment booking to one of the resident's own
+        // approved facility bookings, so staff know the gear is wanted for
+        // that event. Never set on a facility booking.
+        linkedBooking: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Booking",
+            required: false,
+            default: null,
         },
         startTime: {
             type: Date,
@@ -56,7 +66,7 @@ const bookingSchema = new mongoose.Schema(
             required: true,
         },
         status: {
-            type: String, 
+            type: String,
             enum: ["Pending", "Approved", "Rejected", "Cancelled"],
             default: "Pending",
         },
