@@ -91,7 +91,7 @@ function GeneralLayout({ role, navItems }) {
                 style={{
                     flex: 1,
                     minWidth: 0,
-                    padding: 'var(--space-xl)',
+                    padding: 'var(--space-lg)',
                     backgroundColor: 'var(--color-bg)',
                 }}
             >

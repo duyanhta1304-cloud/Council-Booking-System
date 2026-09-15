@@ -179,15 +179,15 @@ function FacilityManagement() {
       />
 
       <Card style={{ padding: 0 }}>
-        <div style={tableStyles.wrapper}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>
-                <th style={tableStyles.th}>Photo</th>
-                <th style={tableStyles.th}>Name</th>
-                <th style={tableStyles.th}>Description</th>
-                <th style={tableStyles.th}>Status</th>
-                <th style={tableStyles.th}></th>
+                <th style={tableStyles.stickyTh}>Photo</th>
+                <th style={tableStyles.stickyTh}>Name</th>
+                <th style={tableStyles.stickyTh}>Description</th>
+                <th style={tableStyles.stickyTh}>Status</th>
+                <th style={tableStyles.stickyTh}></th>
               </tr>
             </thead>
             <tbody>
@@ -212,13 +212,18 @@ function FacilityManagement() {
                   <td style={tableStyles.td}>
                     <StatusBadge label={f.status} tone={f.status === 'Active' ? 'success' : 'neutral'} />
                   </td>
-                  <td style={{ ...tableStyles.td, display: 'flex', gap: '8px' }}>
-                    <Button variant="secondary" style={{ padding: '6px 12px' }} onClick={() => setModalFor(f)}>
-                      Edit
-                    </Button>
-                    <Button variant="secondary" style={{ padding: '6px 12px' }} onClick={() => toggleActive(f._id, f.status)}>
-                      {f.status === 'Active' ? 'Deactivate' : 'Activate'}
-                    </Button>
+                  {/* The flex sits on an inner div, never the cell — a display:flex
+                      td stops behaving as a table cell and its border stops
+                      lining up with the rest of the row. */}
+                  <td style={{ ...tableStyles.td, width: '1%', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <Button variant="secondary" style={{ padding: '6px 12px' }} onClick={() => setModalFor(f)}>
+                        Edit
+                      </Button>
+                      <Button variant="secondary" style={{ padding: '6px 12px' }} onClick={() => toggleActive(f._id, f.status)}>
+                        {f.status === 'Active' ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

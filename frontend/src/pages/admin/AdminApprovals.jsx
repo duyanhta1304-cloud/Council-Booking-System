@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, StatusBadge, Button, EmptyState, bookingSubject } from '../../components/ui'
+import { PageHeader, Card, StatusBadge, Button, EmptyState, bookingSubject, tableStyles } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 function ApprovalsQueue() {
@@ -30,7 +30,8 @@ function ApprovalsQueue() {
     <div>
       <PageHeader title="Approvals queue" description="Review and respond to pending booking requests." />
 
-      <Card style={{ padding: 'var(--space-md)' }}>
+      {/* Same height cap as the table pages, so the queue scrolls inside its card. */}
+      <Card style={{ padding: 'var(--space-md)', ...tableStyles.scrollWrapper('calc(100vh - 140px)') }}>
         {requests.length === 0 && <EmptyState message="No pending requests — you're all caught up." />}
 
         {requests.map((r) => (

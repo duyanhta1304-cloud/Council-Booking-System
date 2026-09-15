@@ -17,6 +17,13 @@ export async function getUtilisation(req, res) {
                 $match: {
                     startTime: { $gte: since },
                     status: { $in: ["Approved", "Pending"] },
+                    // Utilisation is about rooms. Equipment bookings may have no
+                    // facility at all (grouping under null crashed the report), and
+                    // when they do it's only the pickup point, not a room in use.
+                    // "Not Equipment" rather than "is Facility" so bookings written
+                    // before bookingType existed still count.
+                    bookingType: { $ne: "Equipment" },
+                    facility: { $ne: null },
                 },
             },
             {
@@ -47,7 +54,9 @@ export async function getUtilisation(req, res) {
         const utilisation = facilities.map((f) => {
             const booked = hoursMap[f._id.toString()] || 0;
             const rate = Math.min(100, Math.round((booked / availableHours) * 100));
-            return { facility: f.name, rate, booked: Math.round(booked) };
+            // `available` goes out too, so the client can show how the rate was
+            // worked out; booked keeps a decimal so small numbers add up.
+            return { facility: f.name, rate, booked: Math.round(booked * 10) / 10, available: availableHours };
         });
 
         // Sort descending by rate

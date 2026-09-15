@@ -66,7 +66,7 @@ function FacilityClosures() {
     <div>
       <PageHeader title="Facility closures" description="Schedule temporary closures and view all scheduled periods." />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)', marginBottom: 'var(--space-xl)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-lg)', marginBottom: 'var(--space-sm)' }}>
         <Card>
           <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: '0 0 var(--space-md)' }}>
             Schedule a closure
@@ -116,15 +116,16 @@ function FacilityClosures() {
               No closures scheduled.
             </p>
           ) : (
-            <div style={tableStyles.wrapper}>
+            // Extra offset for the card's own "Scheduled closures" heading bar.
+            <div style={tableStyles.scrollWrapper('calc(100vh - 170px)')}>
               <table style={tableStyles.table}>
                 <thead>
                   <tr>
-                    <th style={tableStyles.th}>Facility</th>
-                    <th style={tableStyles.th}>From</th>
-                    <th style={tableStyles.th}>To</th>
-                    <th style={tableStyles.th}>Reason</th>
-                    <th style={tableStyles.th}></th>
+                    <th style={tableStyles.stickyTh}>Facility</th>
+                    <th style={tableStyles.stickyTh}>From</th>
+                    <th style={tableStyles.stickyTh}>To</th>
+                    <th style={tableStyles.stickyTh}>Reason</th>
+                    <th style={tableStyles.stickyTh}></th>
                   </tr>
                 </thead>
                 <tbody>

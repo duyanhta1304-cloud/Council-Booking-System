@@ -189,7 +189,12 @@ function MaintenanceBoard() {
               </span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+            {/* Each column scrolls on its own; the offset adds the column title
+                to the page header, and the right padding keeps cards clear of the scrollbar. */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)',
+              maxHeight: 'calc(100vh - 140px)', overflowY: 'auto', paddingRight: '4px',
+            }}>
               {tasks.filter((t) => t.status === col).map((t) => (
                 <Card key={t._id} style={{ padding: 'var(--space-sm)' }}>
                   <div style={{

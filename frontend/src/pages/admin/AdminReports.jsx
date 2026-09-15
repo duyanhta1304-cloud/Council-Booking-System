@@ -6,6 +6,25 @@ import toast from 'react-hot-toast'
 
 const RANGES = [7, 30, 90]
 
+// Ranked charts show this many bars until the admin asks for the rest — with
+// dozens of facilities the full list turns into a wall of thin bars.
+const TOP_N = 10
+
+const toggleButtonStyle = {
+  background: 'none', border: 'none', padding: 0, cursor: 'pointer', whiteSpace: 'nowrap',
+  color: 'var(--color-primary)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)',
+}
+
+// Nothing to toggle when everything already fits in the top N.
+function ShowAllToggle({ total, showAll, onToggle }) {
+  if (total <= TOP_N) return null
+  return (
+    <button type="button" onClick={onToggle} style={toggleButtonStyle}>
+      {showAll ? `Show top ${TOP_N}` : `View all (${total})`}
+    </button>
+  )
+}
+
 function toMonthInputValue(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
@@ -28,6 +47,8 @@ function UtilizationReports() {
   const [heatmap, setHeatmap] = useState(null)
   const [loading, setLoading] = useState(true)
   const [heatmapLoading, setHeatmapLoading] = useState(true)
+  const [showAllUtilisation, setShowAllUtilisation] = useState(false)
+  const [showAllMaintenance, setShowAllMaintenance] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -70,8 +91,26 @@ function UtilizationReports() {
   }, [month])
 
   // Recharts wants a flat {name, value}; the API speaks in its own terms.
-  const utilisationData = utilisation.map((u) => ({ name: u.facility, value: u.rate, booked: u.booked }))
+  const utilisationData = utilisation.map((u) => ({ name: u.facility, value: u.rate, booked: u.booked, available: u.available }))
   const maintenanceData = maintenance.map((m) => ({ name: m.facility, value: m.hours, tasks: m.tasks, open: m.open }))
+
+  // Hover text showing how each bar's number was reached.
+  const utilisationTooltip = (d) => [
+    `${d.value}% utilised`,
+    d.available
+      ? `${d.booked}h booked ÷ ${d.available}h available` 
+      : `${d.booked}h booked`
+  ].filter(Boolean)
+
+  const maintenanceTooltip = (d) => [
+    `${d.value}h under maintenance`,
+    `Across ${d.tasks} ${d.tasks === 1 ? 'task' : 'tasks'}, ${d.open} still open`,
+    `Each task counted from report to completion (or now), within the last ${range} days`,
+  ]
+
+  // The API already sorts both lists highest first, so the top N is a slice.
+  const visibleUtilisation = showAllUtilisation ? utilisationData : utilisationData.slice(0, TOP_N)
+  const visibleMaintenance = showAllMaintenance ? maintenanceData : maintenanceData.slice(0, TOP_N)
 
   const totalMaintenanceHours = maintenance.reduce((sum, m) => sum + m.hours, 0)
   const stillOpen = maintenance.reduce((sum, m) => sum + m.open, 0)
@@ -99,19 +138,33 @@ function UtilizationReports() {
         <ChartCard
           title="Facility utilisation"
           subtitle={`Share of available hours booked over the last ${range} days`}
-          height={Math.max(220, utilisationData.length * 38)}
+          height={Math.max(220, visibleUtilisation.length * 38)}
           empty={loading ? 'Loading…' : utilisationData.length === 0 ? 'No utilisation data for this period.' : null}
+          action={
+            <ShowAllToggle
+              total={utilisationData.length}
+              showAll={showAllUtilisation}
+              onToggle={() => setShowAllUtilisation((v) => !v)}
+            />
+          }
         >
-          <RankedBarChart data={utilisationData} unit="%" color={CHART_COLORS.primary} />
+          <RankedBarChart data={visibleUtilisation} unit="%" color={CHART_COLORS.primary} tooltipLines={utilisationTooltip} />
         </ChartCard>
 
         <ChartCard
           title="Time under maintenance"
           subtitle={`Hours each facility spent with an open issue in the last ${range} days`}
-          height={Math.max(220, maintenanceData.length * 38)}
+          height={Math.max(220, visibleMaintenance.length * 38)}
           empty={loading ? 'Loading…' : maintenanceData.length === 0 ? 'No maintenance recorded for this period.' : null}
+          action={
+            <ShowAllToggle
+              total={maintenanceData.length}
+              showAll={showAllMaintenance}
+              onToggle={() => setShowAllMaintenance((v) => !v)}
+            />
+          }
         >
-          <RankedBarChart data={maintenanceData} unit="h" color={CHART_COLORS.secondary} />
+          <RankedBarChart data={visibleMaintenance} unit="h" color={CHART_COLORS.secondary} tooltipLines={maintenanceTooltip} />
         </ChartCard>
       </div>
 
@@ -143,7 +196,6 @@ function UtilizationReports() {
           <input
             type="month"
             value={month}
-            max={toMonthInputValue(new Date())}
             onChange={(e) => { setHeatmapLoading(true); setMonth(e.target.value) }}
             style={{
               padding: '6px 10px', border: '1px solid var(--color-border)',
@@ -155,12 +207,10 @@ function UtilizationReports() {
 
         {heatmapLoading ? (
           <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>Loading…</p>
-        ) : !heatmap || heatmap.total === 0 ? (
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
-            No bookings in this month.
-          </p>
         ) : (
-          <BookingHeatmap cells={heatmap.cells} peak={heatmap.peak} />
+          // An empty month still draws the grid, all cells blank, so the layout
+          // doesn't collapse to a line of text when switching months.
+          <BookingHeatmap cells={heatmap?.cells} peak={heatmap?.peak ?? 0} />
         )}
       </Card>
 

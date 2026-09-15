@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, Badge, inputStyle, buttonStyle } from '../../components/ui'
+import { PageHeader, Card, Badge, inputStyle, buttonStyle, tableStyles } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 function availabilityTone(status) {
@@ -50,6 +50,25 @@ function relevantClosure(closures) {
   return { closure: next, active: false }
 }
 
+// The first day this facility is open again. Walks forward rather than just
+// adding a day to the closure end, so back-to-back closures don't land the
+// resident on a day that is still shut. Midday sidesteps the boundary
+// ambiguity of a closure that starts or ends exactly at midnight.
+function firstOpenDate(closures, from = startOfToday()) {
+  const cursor = new Date(from)
+  cursor.setHours(12, 0, 0, 0)
+
+  for (let i = 0; i <= MAX_DAYS_AHEAD; i++) {
+    const shut = closures.some(
+      (c) => new Date(c.startDate) <= cursor && new Date(c.endDate) >= cursor
+    )
+    if (!shut) return new Date(cursor)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  // Closed for the whole booking window — nothing to suggest.
+  return null
+}
+
 function ClosureNotice({ closures }) {
   const relevant = relevantClosure(closures)
   if (!relevant) return null
@@ -70,7 +89,7 @@ function ClosureNotice({ closures }) {
       {active ? (
         <>
           <strong>Closed for {reopensIn} more {reopensIn === 1 ? 'day' : 'days'}</strong>
-          {' '}— reopens {formatDay(new Date(closure.endDate).getTime() + DAY_MS)}. {closure.reason}
+          {' '}— reopens {formatDay(new Date(closure.endDate).getTime() + DAY_MS)}<br/><br/>Reason: {closure.reason}
         </>
       ) : (
         <>
@@ -84,7 +103,13 @@ function ClosureNotice({ closures }) {
 
 function FacilityCard({ facility, closures = [], onRequestBooking }) {
   const closedNow = relevantClosure(closures)?.active ?? false
-  const isClosed = facility.status !== 'Active' || closedNow
+  const openFrom = firstOpenDate(closures)
+
+  // A closure has a known end date, so booking past it is fine — only the
+  // facility's own status (which has no end date) takes it off the market.
+  // The one exception is a closure running past the whole booking horizon,
+  // where there is no open day left to offer.
+  const isClosed = facility.status !== 'Active' || openFrom === null
 
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -124,9 +149,9 @@ function FacilityCard({ facility, closures = [], onRequestBooking }) {
           <button
             style={{ ...buttonStyle, opacity: isClosed ? 0.5 : 1, cursor: isClosed ? 'not-allowed' : 'pointer' }}
             disabled={isClosed}
-            onClick={() => onRequestBooking(facility)}
+            onClick={() => onRequestBooking(facility, openFrom)}
           >
-            {closedNow ? 'Closed' : isClosed ? 'Unavailable' : 'Request booking'}
+            {isClosed ? 'Unavailable' : closedNow ? 'Book a later date' : 'Request booking'}
           </button>
         </div>
       </div>
@@ -193,12 +218,17 @@ function SlotButton({ slot, state, onClick }) {
   )
 }
 
-function BookingRequestModal({ facility, onClose, onSubmit }) {
+function BookingRequestModal({ facility, openFrom, onClose, onSubmit }) {
   const today = new Date()
   const maxDate = new Date(today)
   maxDate.setDate(maxDate.getDate() + MAX_DAYS_AHEAD)
 
-  const [date, setDate] = useState(toDateInputValue(today))
+  // Open on the first date the facility is actually free. During a closure
+  // that is a later date, so the grid isn't a wall of "Closed" on arrival.
+  const suggested = openFrom ?? today
+  const openedOnLaterDate = toDateInputValue(suggested) !== toDateInputValue(today)
+
+  const [date, setDate] = useState(toDateInputValue(suggested))
   // null means "still loading" — avoids a separate loading flag the effect
   // would have to set synchronously.
   const [slots, setSlots] = useState(null)
@@ -303,6 +333,8 @@ function BookingRequestModal({ facility, onClose, onSubmit }) {
           Pick a date, then choose a one-hour block. Click a second block to book a longer run.
         </p>
 
+      
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
           <label style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
             Date
@@ -402,7 +434,9 @@ function ResidentFacilities() {
   const [closuresByFacility, setClosuresByFacility] = useState({})
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
-  const [selectedFacility, setSelectedFacility] = useState(null)
+  // Holds the facility being booked plus the date to open the picker on, which
+  // is later than today when a closure is running.
+  const [request, setRequest] = useState(null)
   const [confirmation, setConfirmation] = useState(null)
 
   useEffect(() => {
@@ -433,7 +467,7 @@ function ResidentFacilities() {
   async function handleSubmitRequest({ facilityId, facilityName, startTime, endTime, purpose }) {
     try {
       await api.post('/bookings', { facility: facilityId, startTime, endTime, purpose })
-      setSelectedFacility(null)
+      setRequest(null)
       setConfirmation(`Booking request sent for ${facilityName}!`)
       toast.success('Booking request submitted!')
       setTimeout(() => setConfirmation(null), 4000)
@@ -473,13 +507,18 @@ function ResidentFacilities() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--space-md)' }}>
+      {/* The card grid scrolls on its own below the header; the right padding
+          keeps card edges clear of the scrollbar. */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--space-md)',
+        ...tableStyles.scrollWrapper('calc(100vh - 110px)'), paddingRight: '4px',
+      }}>
         {filtered.map((f) => (
           <FacilityCard
             key={f._id}
             facility={f}
             closures={closuresByFacility[f._id] ?? []}
-            onRequestBooking={setSelectedFacility}
+            onRequestBooking={(facility, openFrom) => setRequest({ facility, openFrom })}
           />
         ))}
       </div>
@@ -490,10 +529,11 @@ function ResidentFacilities() {
         </p>
       )}
 
-      {selectedFacility && (
+      {request && (
         <BookingRequestModal
-          facility={selectedFacility}
-          onClose={() => setSelectedFacility(null)}
+          facility={request.facility}
+          openFrom={request.openFrom}
+          onClose={() => setRequest(null)}
           onSubmit={handleSubmitRequest}
         />
       )}

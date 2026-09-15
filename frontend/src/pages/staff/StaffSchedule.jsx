@@ -31,14 +31,14 @@ function StaffSchedule() {
         </Card>
       ) : (
         <Card style={{ padding: 0 }}>
-          <div style={tableStyles.wrapper}>
+          <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
             <table style={tableStyles.table}>
               <thead>
                 <tr>
-                  <th style={tableStyles.th}>Day</th>
-                  <th style={tableStyles.th}>Date</th>
-                  <th style={tableStyles.th}>Shift</th>
-                  <th style={tableStyles.th}>Assignment</th>
+                  <th style={tableStyles.stickyTh}>Day</th>
+                  <th style={tableStyles.stickyTh}>Date</th>
+                  <th style={tableStyles.stickyTh}>Shift</th>
+                  <th style={tableStyles.stickyTh}>Assignment</th>
                 </tr>
               </thead>
               <tbody>

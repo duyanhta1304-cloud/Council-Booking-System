@@ -51,15 +51,15 @@ function AllBookings() {
       />
 
       <Card style={{ padding: 0 }}>
-        <div style={tableStyles.wrapper}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>
-                <th style={tableStyles.th}>Facility</th>
-                <th style={tableStyles.th}>Requester</th>
-                <th style={tableStyles.th}>Start Time</th>
-                <th style={tableStyles.th}>Status</th>
-                <th style={tableStyles.th}></th>
+                <th style={tableStyles.stickyTh}>Facility</th>
+                <th style={tableStyles.stickyTh}>Requester</th>
+                <th style={tableStyles.stickyTh}>Start Time</th>
+                <th style={tableStyles.stickyTh}>Status</th>
+                <th style={tableStyles.stickyTh}></th>
               </tr>
             </thead>
             <tbody>

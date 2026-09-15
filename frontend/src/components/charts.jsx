@@ -60,17 +60,23 @@ const tooltipProps = {
   cursor: { fill: 'rgba(13, 59, 79, 0.06)' },
 }
 
-export function ChartCard({ title, subtitle, children, height = 240, empty }) {
+// `action` sits top-right beside the title, for a control like a "View all" toggle.
+export function ChartCard({ title, subtitle, children, height = 240, empty, action }) {
   return (
     <Card>
-      <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: 0 }}>
-        {title}
-      </h2>
-      {subtitle && (
-        <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
-          {subtitle}
-        </p>
-      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-sm)' }}>
+        <div>
+          <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: 0 }}>
+            {title}
+          </h2>
+          {subtitle && (
+            <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', margin: '2px 0 0' }}>
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {action}
+      </div>
       <div style={{ height, marginTop: 'var(--space-md)' }}>
         {empty ? (
           <div style={{
@@ -119,15 +125,40 @@ export function GroupedBarChart({ data, series }) {
   )
 }
 
+// Tooltip body for charts that explain a value rather than just repeat it:
+// `lines` turns the hovered datum into a list of text rows under its name.
+function DetailTooltip({ active, payload, lines }) {
+  if (!active || !payload?.length) return null
+  const datum = payload[0].payload
+
+  return (
+    <div style={{ ...tooltipProps.contentStyle, padding: '8px 10px', maxWidth: '260px' }}>
+      <div style={{ color: 'var(--color-text)', fontWeight: 'var(--font-weight-semibold)', marginBottom: '4px' }}>
+        {datum.name}
+      </div>
+      {lines(datum).map((line, i) => (
+        <div key={i} style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>
+          {line}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // Horizontal bars — the right shape when the category is a name of unpredictable
 // length, since the label gets a whole row instead of a cramped tick.
-export function RankedBarChart({ data, dataKey = 'value', unit = '', color = CHART_COLORS.primary }) {
+// `tooltipLines` (optional): datum => string[] to show the working on hover.
+export function RankedBarChart({ data, dataKey = 'value', unit = '', color = CHART_COLORS.primary, tooltipLines }) {
   return (
     <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
       <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} horizontal={false} />
       <XAxis type="number" allowDecimals={false} {...axisProps} />
       <YAxis type="category" dataKey="name" width={120} {...axisProps} />
-      <Tooltip {...tooltipProps} formatter={(value) => [`${value}${unit}`, '']} />
+      {tooltipLines ? (
+        <Tooltip cursor={tooltipProps.cursor} content={<DetailTooltip lines={tooltipLines} />} />
+      ) : (
+        <Tooltip {...tooltipProps} formatter={(value) => [`${value}${unit}`, '']} />
+      )}
       <Bar dataKey={dataKey} fill={color} radius={[0, 3, 3, 0]} />
     </BarChart>
   )
@@ -186,7 +217,7 @@ export function BookingHeatmap({ cells, peak, hours = [8, 20] }) {
             fontSize: '10px', fontFamily: 'var(--font-family-mono)',
             color: 'var(--color-text-muted)', textAlign: 'center',
           }}>
-            {hour}
+            {`${String(hour).padStart(2, '0')}00`}
           </div>
         ))}
 
@@ -205,7 +236,7 @@ export function BookingHeatmap({ cells, peak, hours = [8, 20] }) {
                   key={hour}
                   title={`${day} ${String(hour).padStart(2, '0')}:00 — ${count} booked hour${count === 1 ? '' : 's'}`}
                   style={{
-                    aspectRatio: '1', borderRadius: '3px', backgroundColor: shade(count),
+                    aspectRatio: '4 / 1', borderRadius: '3px', backgroundColor: shade(count),
                     border: '1px solid var(--color-border)',
                   }}
                 />

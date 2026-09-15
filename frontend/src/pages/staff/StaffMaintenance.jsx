@@ -61,15 +61,15 @@ function StaffMaintenance() {
       />
 
       <Card style={{ padding: 0 }}>
-        <div style={tableStyles.wrapper}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>
-                <th style={tableStyles.th}>Facility</th>
-                <th style={tableStyles.th}>Issue</th>
-                <th style={tableStyles.th}>Priority</th>
-                <th style={tableStyles.th}>Status</th>
-                <th style={tableStyles.th}>Actions</th>
+                <th style={tableStyles.stickyTh}>Facility</th>
+                <th style={tableStyles.stickyTh}>Issue</th>
+                <th style={tableStyles.stickyTh}>Priority</th>
+                <th style={tableStyles.stickyTh}>Status</th>
+                <th style={tableStyles.stickyTh}>Actions</th>
               </tr>
             </thead>
             <tbody>

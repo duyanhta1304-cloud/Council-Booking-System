@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 
 const STATUSES = ['Available', 'Under Maintenance', 'Retired']
 const STATUS_TONE = { Available: 'success', 'Under Maintenance': 'warning', Retired: 'neutral' }
-
 function EquipmentModal({ item, facilities, onClose, onSaved }) {
   const editing = Boolean(item)
   const [name, setName] = useState(item?.name ?? '')
@@ -153,15 +152,15 @@ function EquipmentManagement() {
       />
 
       <Card style={{ padding: 0 }}>
-        <div style={tableStyles.wrapper}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>
-                <th style={tableStyles.th}>Item</th>
-                <th style={tableStyles.th}>Units</th>
-                <th style={tableStyles.th}>Collected from</th>
-                <th style={tableStyles.th}>Status</th>
-                <th style={tableStyles.th}></th>
+                <th style={tableStyles.stickyTh}>Item</th>
+                <th style={tableStyles.stickyTh}>Units</th>
+                <th style={tableStyles.stickyTh}>Collected from</th>
+                <th style={tableStyles.stickyTh}>Status</th>
+                <th style={tableStyles.stickyTh}></th>
               </tr>
             </thead>
             <tbody>
@@ -182,13 +181,16 @@ function EquipmentManagement() {
                   <td style={tableStyles.td}>
                     <StatusBadge label={item.status} tone={STATUS_TONE[item.status]} />
                   </td>
-                  <td style={{ ...tableStyles.td, display: 'flex', gap: '8px' }}>
-                    <Button variant="secondary" style={{ padding: '6px 12px' }} onClick={() => setModalFor(item)}>
-                      Edit
-                    </Button>
-                    <Button variant="danger" style={{ padding: '6px 12px' }} onClick={() => remove(item)}>
-                      Delete
-                    </Button>
+                  {/* Flex on an inner div, not the cell — see AdminFacilities. */}
+                  <td style={{ ...tableStyles.td, width: '1%', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <Button variant="secondary" style={{ padding: '6px 12px' }} onClick={() => setModalFor(item)}>
+                        Edit
+                      </Button>
+                      <Button variant="danger" style={{ padding: '6px 12px' }} onClick={() => remove(item)}>
+                        Delete
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

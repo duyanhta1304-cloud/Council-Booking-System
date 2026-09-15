@@ -41,14 +41,14 @@ function AuditLog() {
       />
 
       <Card style={{ padding: 0 }}>
-        <div style={tableStyles.wrapper}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>
-                <th style={tableStyles.th}>Timestamp</th>
-                <th style={tableStyles.th}>User</th>
-                <th style={tableStyles.th}>Action</th>
-                <th style={tableStyles.th}>Details</th>
+                <th style={tableStyles.stickyTh}>Timestamp</th>
+                <th style={tableStyles.stickyTh}>User</th>
+                <th style={tableStyles.stickyTh}>Action</th>
+                <th style={tableStyles.stickyTh}>Details</th>
               </tr>
             </thead>
             <tbody>

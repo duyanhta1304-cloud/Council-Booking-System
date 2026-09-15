@@ -128,7 +128,7 @@ export function PageHeader({ title, description, action }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-      marginBottom: 'var(--space-lg)', flexWrap: 'wrap', gap: 'var(--space-md)',
+      marginBottom: 'var(--space-sm)', flexWrap: 'wrap', gap: 'var(--space-md)',
     }}>
       <div>
         <h1 style={{
@@ -243,18 +243,22 @@ export function EmptyState({ message }) {
 export function StatCard({ label, value, tone = 'neutral' }) {
   const { text } = STATUS_TONES[tone] || STATUS_TONES.neutral
   return (
-    <Card style={{ padding: 'var(--space-md)' }}>
+    <Card style={{
+      padding: 'var(--space-sm) var(--space-md)', display: 'flex', alignItems: 'center',
+      justifyContent: 'start', gap: 'var(--space-md)',
+    }}>
       <div style={{
-        fontSize: '11px', fontFamily: 'var(--font-family-mono)', letterSpacing: '0.04em',
-        textTransform: 'uppercase', color: 'var(--color-text-secondary)', marginBottom: '8px',
-      }}>
-        {label}
-      </div>
-      <div style={{
-        fontFamily: 'var(--font-family-heading)', fontWeight: 600, fontSize: 'var(--font-size-2xl)',
+        fontFamily: 'var(--font-family-heading)', fontWeight: 600, fontSize: 'var(--font-size-xl)',
+        lineHeight: 1.2, whiteSpace: 'nowrap',
         color: tone === 'neutral' ? 'var(--color-text)' : text,
       }}>
         {value}
+      </div>
+      <div style={{
+        fontSize: '11px', fontFamily: 'var(--font-family-mono)', letterSpacing: '0.04em',
+        textTransform: 'uppercase', color: 'var(--color-text-secondary)', minWidth: 0,
+      }}>
+        {label}
       </div>
     </Card>
   )
@@ -287,7 +291,21 @@ export const tableStyles = {
   td: {
     padding: 'var(--space-sm) var(--space-md)', borderBottom: '1px solid var(--color-border)',
     color: 'var(--color-text)',
+    // Cells hold images and buttons as well as single-line text; the default
+    // baseline alignment would hang the text off the bottom of a photo.
+    verticalAlign: 'middle',
   },
+  // For long lists: the table scrolls inside its card instead of stretching the
+  // page. Each page passes its own maxHeight, since how much sits above the
+  // table differs; the default covers the layout padding plus a page header.
+  scrollWrapper: (maxHeight = 'calc(100vh - 140px)') => ({ overflowX: 'auto', overflowY: 'auto', maxHeight }),
+}
+
+// Header cell that stays pinned while rows scroll under it. Needs a solid
+// background or the rows show through.
+tableStyles.stickyTh = {
+  ...tableStyles.th, position: 'sticky', top: 0, zIndex: 1,
+  backgroundColor: 'var(--color-surface)',
 }
 
 export const buttonStyle = {
