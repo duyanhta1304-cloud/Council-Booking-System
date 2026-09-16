@@ -1,21 +1,25 @@
-import { useState, useEffect } from 'react'
-import api from '../../lib/axios'
-import { PageHeader, Card, tableStyles } from '../../components/ui'
-import toast from 'react-hot-toast'
+import { PageHeader, Card, Badge, tableStyles } from '../../components/ui'
+
+// Placeholder data — the schedule feature is not part of the assignment
+// requirements, so this page renders a fixed sample week.
+const SCHEDULE = [
+  { id: 1, day: 'Monday', date: '15 Sep 2026', shift: 'Morning (8:00 AM - 4:00 PM)', assignment: 'Front desk — Coastal Community Hall' },
+  { id: 2, day: 'Tuesday', date: '16 Sep 2026', shift: 'Morning (8:00 AM - 4:00 PM)', assignment: 'Maintenance rounds — Seaview Sports Centre' },
+  { id: 3, day: 'Wednesday', date: '17 Sep 2026', shift: 'Afternoon (12:00 PM - 8:00 PM)', assignment: 'Booking support — Harbour Meeting Rooms' },
+  { id: 4, day: 'Thursday', date: '18 Sep 2026', shift: 'Afternoon (12:00 PM - 8:00 PM)', assignment: 'Equipment checkout — Seaview Sports Centre' },
+  { id: 5, day: 'Friday', date: '19 Sep 2026', shift: 'Morning (8:00 AM - 4:00 PM)', assignment: 'Front desk — Coastal Community Hall' },
+  { id: 6, day: 'Saturday', date: '20 Sep 2026', shift: 'Weekend (9:00 AM - 1:00 PM)', assignment: 'Event setup — Beachside Pavilion' },
+  { id: 7, day: 'Sunday', date: '21 Sep 2026', shift: 'Rest day', assignment: '—' },
+]
+
+function shiftTone(shift) {
+  if (shift.startsWith('Morning')) return 'success'
+  if (shift.startsWith('Afternoon')) return 'warning'
+  if (shift.startsWith('Weekend')) return 'default'
+  return 'default'
+}
 
 function StaffSchedule() {
-  const [schedule, setSchedule] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    api.get('/staff/schedule')
-      .then(({ data }) => setSchedule(data))
-      .catch(() => toast.error('Could not load schedule'))
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) return <p style={{ padding: 'var(--space-lg)', color: 'var(--color-text-muted)' }}>Loading...</p>
-
   return (
     <div>
       <PageHeader
@@ -23,38 +27,30 @@ function StaffSchedule() {
         description="Your shifts and assignments for the week."
       />
 
-      {schedule.length === 0 ? (
-        <Card>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', textAlign: 'center', padding: 'var(--space-lg) 0' }}>
-            No schedule has been assigned to you yet. Check back later or contact your manager.
-          </p>
-        </Card>
-      ) : (
-        <Card style={{ padding: 0 }}>
-          <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
-            <table style={tableStyles.table}>
-              <thead>
-                <tr>
-                  <th style={tableStyles.stickyTh}>Day</th>
-                  <th style={tableStyles.stickyTh}>Date</th>
-                  <th style={tableStyles.stickyTh}>Shift</th>
-                  <th style={tableStyles.stickyTh}>Assignment</th>
+      <Card style={{ padding: 0 }}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
+          <table style={tableStyles.table}>
+            <thead>
+              <tr>
+                <th style={tableStyles.stickyTh}>Day</th>
+                <th style={tableStyles.stickyTh}>Date</th>
+                <th style={tableStyles.stickyTh}>Shift</th>
+                <th style={tableStyles.stickyTh}>Assignment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SCHEDULE.map((s) => (
+                <tr key={s.id}>
+                  <td style={{ ...tableStyles.td, fontWeight: 'var(--font-weight-medium)' }}>{s.day}</td>
+                  <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{s.date}</td>
+                  <td style={tableStyles.td}><Badge tone={shiftTone(s.shift)}>{s.shift}</Badge></td>
+                  <td style={tableStyles.td}>{s.assignment}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {schedule.map((s) => (
-                  <tr key={s.id ?? s._id}>
-                    <td style={{ ...tableStyles.td, fontWeight: 'var(--font-weight-medium)' }}>{s.day}</td>
-                    <td style={{ ...tableStyles.td, color: 'var(--color-text-secondary)' }}>{s.date}</td>
-                    <td style={tableStyles.td}>{s.shift}</td>
-                    <td style={tableStyles.td}>{s.assignment}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   )
 }

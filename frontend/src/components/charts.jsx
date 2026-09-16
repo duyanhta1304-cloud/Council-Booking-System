@@ -61,7 +61,11 @@ const tooltipProps = {
 }
 
 // `action` sits top-right beside the title, for a control like a "View all" toggle.
-export function ChartCard({ title, subtitle, children, height = 240, empty, action }) {
+// `contentHeight`, when taller than `height`, lets the chart grow (e.g. one bar
+// per row) while the card stays put and scrolls.
+export function ChartCard({ title, subtitle, children, height = 240, contentHeight, empty, action }) {
+  const scrolls = !empty && contentHeight > height
+
   return (
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-sm)' }}>
@@ -77,7 +81,7 @@ export function ChartCard({ title, subtitle, children, height = 240, empty, acti
         </div>
         {action}
       </div>
-      <div style={{ height, marginTop: 'var(--space-md)' }}>
+      <div style={{ height, marginTop: 'var(--space-md)', overflowY: scrolls ? 'auto' : undefined }}>
         {empty ? (
           <div style={{
             height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -86,9 +90,11 @@ export function ChartCard({ title, subtitle, children, height = 240, empty, acti
             {empty}
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            {children}
-          </ResponsiveContainer>
+          <div style={{ height: scrolls ? contentHeight : '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              {children}
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
     </Card>

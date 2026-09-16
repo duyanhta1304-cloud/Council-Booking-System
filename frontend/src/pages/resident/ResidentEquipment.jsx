@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, Badge, inputStyle, buttonStyle } from '../../components/ui'
+import { PageHeader, Card, Badge, inputStyle, buttonStyle, tableStyles } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 const MAX_DAYS_AHEAD = 90
@@ -470,7 +470,11 @@ function ResidentEquipment() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--space-md)' }}>
+      {/* Same height cap as the table pages, so the catalogue scrolls inside its own area. */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--space-md)',
+        alignContent: 'start', ...tableStyles.scrollWrapper('calc(100vh - 170px)'), paddingRight: '4px',
+      }}>
         {filtered.map((item) => (
           <EquipmentCard key={item._id} item={item} onRequestBooking={setSelectedItem} />
         ))}

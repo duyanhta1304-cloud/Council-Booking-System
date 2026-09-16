@@ -61,7 +61,7 @@ function StaffMaintenance() {
       />
 
       <Card style={{ padding: 0 }}>
-        <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 170px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>

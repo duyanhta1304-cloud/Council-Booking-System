@@ -1,13 +1,27 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, StatusBadge, Button, tableStyles } from '../../components/ui'
+import { PageHeader, Card, StatusBadge, Button, bookingSubject, tableStyles, inputStyle, selectStyle } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 const STATUS_TONE = { Approved: 'success', Pending: 'warning', Cancelled: 'neutral', Rejected: 'danger' }
 
+// The facility and requester dropdowns list what the bookings actually contain,
+// so neither needs its own request.
+function optionsFrom(bookings, pick) {
+  const byId = new Map()
+  for (const b of bookings) {
+    const item = pick(b)
+    if (item?._id) byId.set(item._id, item.name)
+  }
+  return [...byId].sort((a, b) => a[1].localeCompare(b[1]))
+}
+
 function AllBookings() {
   const [bookings, setBookings] = useState([])
   const [filter, setFilter] = useState('All')
+  const [query, setQuery] = useState('')
+  const [facilityFilter, setFacilityFilter] = useState('all')
+  const [userFilter, setUserFilter] = useState('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -17,7 +31,20 @@ function AllBookings() {
       .finally(() => setLoading(false))
   }, [])
 
-  const filtered = filter === 'All' ? bookings : bookings.filter((b) => b.status === filter)
+  const facilityOptions = optionsFrom(bookings, (b) => b.facility)
+  const userOptions = optionsFrom(bookings, (b) => b.user)
+
+  const q = query.trim().toLowerCase()
+  const filtered = bookings.filter((b) => {
+    if (filter !== 'All' && b.status !== filter) return false
+    if (facilityFilter !== 'all' && b.facility?._id !== facilityFilter) return false
+    if (userFilter !== 'all' && b.user?._id !== userFilter) return false
+    if (!q) return true
+    const { primary, secondary } = bookingSubject(b)
+    return `${b.facility?.name ?? ''} ${primary} ${secondary ?? ''} ${b.user?.name ?? ''} ${b.status}`
+      .toLowerCase()
+      .includes(q)
+  })
 
   const cancelBooking = async (id) => {
     try {
@@ -36,22 +63,39 @@ function AllBookings() {
       <PageHeader
         title="All bookings"
         description="Every booking across all facilities, regardless of status."
-        action={
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} style={{
-            padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)',
-            fontSize: 'var(--font-size-sm)', color: 'var(--color-text)',
-          }}>
+      />
+
+      <div style={{ flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
+        {/* minWidth: 0 lets the input shrink below its content width rather
+                than pushing the row wider. */}
+        <input
+          type="text"
+          placeholder="Search bookings..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          style={{ ...inputStyle, flex: 1, minWidth: 0 }}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} style={selectStyle}>
             <option>All</option>
             <option>Pending</option>
             <option>Approved</option>
             <option>Cancelled</option>
             <option>Rejected</option>
           </select>
-        }
-      />
+          <select value={facilityFilter} onChange={(e) => setFacilityFilter(e.target.value)} style={selectStyle}>
+            <option value="all">All facilities</option>
+            {facilityOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+          <select value={userFilter} onChange={(e) => setUserFilter(e.target.value)} style={selectStyle}>
+            <option value="all">All requesters</option>
+            {userOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        </div>
+      </div>
 
       <Card style={{ padding: 0 }}>
-        <div style={tableStyles.scrollWrapper('calc(100vh - 110px)')}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 230px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>

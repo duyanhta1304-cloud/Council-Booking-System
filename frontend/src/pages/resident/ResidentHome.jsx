@@ -6,6 +6,9 @@ import { PageHeader, Card, Badge, BookingSubject, tableStyles, buttonStyle } fro
 import { ChartCard, RankedBarChart, StatusDonut, CHART_COLORS } from '../../components/charts'
 import toast from 'react-hot-toast'
 
+// Tall enough for about eight rows; past that the table scrolls inside its card.
+const LIST_MAX_HEIGHT = '360px'
+
 function statusTone(status) {
   if (status === 'Approved') return 'success'
   if (status === 'Pending') return 'warning'
@@ -63,7 +66,7 @@ function ResidentHome() {
           <ChartCard
             title="Where you've booked"
             subtitle="Hours booked over the last 30 days"
-            height={Math.max(180, charts.myHoursByFacility.length * 38)}
+            contentHeight={charts.myHoursByFacility.length * 38}
             empty={noHours ? "You haven't booked anything in the last 30 days." : null}
           >
             <RankedBarChart data={charts.myHoursByFacility} unit="h" color={CHART_COLORS.primary} />
@@ -97,14 +100,14 @@ function ResidentHome() {
             You have no upcoming bookings.
           </div>
         ) : (
-          <div style={tableStyles.wrapper}>
+          <div style={tableStyles.scrollWrapper(LIST_MAX_HEIGHT)}>
             <table style={tableStyles.table}>
               <thead>
                 <tr>
-                  <th style={tableStyles.th}>Booked</th>
-                  <th style={tableStyles.th}>Date</th>
-                  <th style={tableStyles.th}>Time</th>
-                  <th style={tableStyles.th}>Status</th>
+                  <th style={tableStyles.stickyTh}>Booked</th>
+                  <th style={tableStyles.stickyTh}>Date</th>
+                  <th style={tableStyles.stickyTh}>Time</th>
+                  <th style={tableStyles.stickyTh}>Status</th>
                 </tr>
               </thead>
               <tbody>

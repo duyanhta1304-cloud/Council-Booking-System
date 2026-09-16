@@ -11,9 +11,14 @@ const PRIORITY_TONE = { High: 'danger', Medium: 'warning', Low: 'success' }
 const NEXT_STATUS = { Pending: 'In Progress', 'In Progress': 'Completed' }
 const NEXT_LABEL = { Pending: 'Start', 'In Progress': 'Complete' }
 
-// Tall enough for about five rows; past that the list scrolls inside its card
-// rather than stretching the page.
-const LIST_MAX_HEIGHT = '130px'
+// The page fills the viewport exactly — main's padding is the only thing above
+// and below it — so the bottom cards can take the leftover height and scroll
+// inside themselves instead of pushing the page into a scrollbar.
+const PAGE_HEIGHT = 'calc(100vh - var(--space-lg) * 2)'
+
+// Below this the bottom row stops shrinking; on a very short window the page
+// scrolls rather than squashing the lists into nothing.
+const LIST_ROW_MIN_HEIGHT = '160px'
 
 const rowStyle = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-sm)',
@@ -38,12 +43,12 @@ function formatSlot(booking) {
 
 function ListCard({ title, count, children }) {
   return (
-    <Card style={{ display: 'flex', flexDirection: 'column', padding: 'var(--space-md)' }}>
+    <Card style={{ display: 'flex', flexDirection: 'column', padding: 'var(--space-md)', height: '100%', minHeight: 0, boxSizing: 'border-box' }}>
       <h2 style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-text)', margin: '0 0 var(--space-sm)' }}>
         {title}{' '}
         <span style={{ color: 'var(--color-text-muted)', fontWeight: 'var(--font-weight-regular)' }}>({count})</span>
       </h2>
-      <div style={{ maxHeight: LIST_MAX_HEIGHT, overflowY: 'auto', paddingRight: '4px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
         {children}
       </div>
     </Card>
@@ -148,12 +153,12 @@ function Dashboard() {
   ]
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: PAGE_HEIGHT }}>
       <PageHeader title="Dashboard" description="Overview of today's activity across CoastLink facilities." />
 
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)',
+        gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)', flexShrink: 0,
       }}>
         {stats && stats.map((s) => <StatCard key={s.label} {...s} />)}
       </div>
@@ -161,7 +166,7 @@ function Dashboard() {
       {charts && (
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)',
+          gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)', flexShrink: 0,
         }}>
           <ChartCard
             title="Booking requests"
@@ -189,7 +194,10 @@ function Dashboard() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-sm)' }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: 'var(--space-sm)', flex: 1, minHeight: LIST_ROW_MIN_HEIGHT,
+      }}>
         <ListCard title="Pending approvals" count={pendingBookings.length}>
           {pendingBookings.length === 0 ? (
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>No pending approvals.</p>

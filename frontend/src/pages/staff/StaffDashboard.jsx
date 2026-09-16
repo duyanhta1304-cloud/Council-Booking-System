@@ -9,6 +9,9 @@ const WEEK_SERIES = [
   { key: 'equipment', label: 'Equipment', color: CHART_COLORS.secondary },
 ]
 
+// Tall enough for about eight rows; past that the table scrolls inside its card.
+const LIST_MAX_HEIGHT = '360px'
+
 function statusTone(status) {
   if (status === 'Approved') return 'success'
   if (status === 'Pending') return 'warning'
@@ -56,7 +59,10 @@ function StaffDashboard() {
         description="A quick overview of today's bookings and outstanding tasks."
       />
 
-      <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap', marginBottom: 'var(--space-lg)' }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: 'var(--space-md)', marginBottom: 'var(--space-lg)',
+      }}>
         {stats && stats.map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
         ))}
@@ -96,14 +102,14 @@ function StaffDashboard() {
             No bookings today.
           </p>
         ) : (
-          <div style={tableStyles.wrapper}>
+          <div style={tableStyles.scrollWrapper(LIST_MAX_HEIGHT)}>
             <table style={tableStyles.table}>
               <thead>
                 <tr>
-                  <th style={tableStyles.th}>Time</th>
-                  <th style={tableStyles.th}>Booked</th>
-                  <th style={tableStyles.th}>Resident</th>
-                  <th style={tableStyles.th}>Status</th>
+                  <th style={tableStyles.stickyTh}>Time</th>
+                  <th style={tableStyles.stickyTh}>Booked</th>
+                  <th style={tableStyles.stickyTh}>Resident</th>
+                  <th style={tableStyles.stickyTh}>Status</th>
                 </tr>
               </thead>
               <tbody>

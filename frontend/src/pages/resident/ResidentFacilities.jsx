@@ -511,7 +511,7 @@ function ResidentFacilities() {
           keeps card edges clear of the scrollbar. */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--space-md)',
-        ...tableStyles.scrollWrapper('calc(100vh - 110px)'), paddingRight: '4px',
+        ...tableStyles.scrollWrapper('calc(100vh - 170px)'), paddingRight: '4px',
       }}>
         {filtered.map((f) => (
           <FacilityCard

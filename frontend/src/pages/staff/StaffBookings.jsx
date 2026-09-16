@@ -77,7 +77,7 @@ function StaffBookings() {
 
       <Card style={{ padding: 0 }}>
         {/* Extra offset for the type filter chips above the table. */}
-        <div style={tableStyles.scrollWrapper('calc(100vh - 160px)')}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 230px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>

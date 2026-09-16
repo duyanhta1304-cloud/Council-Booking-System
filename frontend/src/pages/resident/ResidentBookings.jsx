@@ -69,16 +69,16 @@ function ResidentBookings() {
       </div>
 
       <Card style={{ padding: 0 }}>
-        <div style={tableStyles.wrapper}>
+        <div style={tableStyles.scrollWrapper('calc(100vh - 170px)')}>
           <table style={tableStyles.table}>
             <thead>
               <tr>
-                <th style={tableStyles.th}>Type</th>
-                <th style={tableStyles.th}>Booked</th>
-                <th style={tableStyles.th}>Start Time</th>
-                <th style={tableStyles.th}>End Time</th>
-                <th style={tableStyles.th}>Status</th>
-                <th style={tableStyles.th}>Actions</th>
+                <th style={tableStyles.stickyTh}>Type</th>
+                <th style={tableStyles.stickyTh}>Booked</th>
+                <th style={tableStyles.stickyTh}>Start Time</th>
+                <th style={tableStyles.stickyTh}>End Time</th>
+                <th style={tableStyles.stickyTh}>Status</th>
+                <th style={tableStyles.stickyTh}>Actions</th>
               </tr>
             </thead>
             <tbody>

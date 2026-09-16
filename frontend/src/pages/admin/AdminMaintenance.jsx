@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, StatusBadge, Button, RadioGroup, PRIORITY_OPTIONS, PRIORITY_TONES, inputStyle, labelStyle } from '../../components/ui'
+import { PageHeader, Card, StatusBadge, Button, RadioGroup, PRIORITY_OPTIONS, PRIORITY_TONES, inputStyle, selectStyle, labelStyle } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 const COLUMNS = ['Pending', 'In Progress', 'Completed', 'Cancelled']
@@ -116,6 +116,9 @@ function MaintenanceBoard() {
   const [staff, setStaff] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [query, setQuery] = useState('')
+  const [facilityFilter, setFacilityFilter] = useState('all')
+  const [staffFilter, setStaffFilter] = useState('all')
 
   useEffect(() => {
     Promise.all([
@@ -166,6 +169,19 @@ function MaintenanceBoard() {
 
   const reopen = (id) => setStatus(id, 'Pending', 'Task reopened')
 
+  // One filtered list drives both the column counts and the cards, so a
+  // column header never promises more tasks than it shows.
+  const q = query.trim().toLowerCase()
+  const visible = tasks.filter((t) => {
+    if (facilityFilter !== 'all' && t.facility?._id !== facilityFilter) return false
+    if (staffFilter === 'unassigned' && t.assignedTo) return false
+    if (staffFilter !== 'all' && staffFilter !== 'unassigned' && t.assignedTo?._id !== staffFilter) return false
+    if (!q) return true
+    return `${t.facility?.name ?? ''} ${t.description ?? ''} ${t.priority ?? ''} ${t.assignedTo?.name ?? ''}`
+      .toLowerCase()
+      .includes(q)
+  })
+
   if (loading) return <p>Loading...</p>
 
   return (
@@ -173,88 +189,115 @@ function MaintenanceBoard() {
       <PageHeader
         title="Maintenance"
         description="Track reported issues from first report through to resolution."
-        action={<Button variant="primary" onClick={() => setShowModal(true)}>+ Report issue</Button>}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-md)' }}>
-        {COLUMNS.map((col) => (
-          <div key={col}>
-            <div style={{
-              fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)',
-              color: 'var(--color-text)', marginBottom: 'var(--space-sm)',
-            }}>
-              {col}{' '}
-              <span style={{ color: 'var(--color-text-muted)', fontWeight: 'var(--font-weight-regular)' }}>
-                ({tasks.filter((t) => t.status === col).length})
-              </span>
-            </div>
-
-            {/* Each column scrolls on its own; the offset adds the column title
-                to the page header, and the right padding keeps cards clear of the scrollbar. */}
-            <div style={{
-              display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)',
-              maxHeight: 'calc(100vh - 140px)', overflowY: 'auto', paddingRight: '4px',
-            }}>
-              {tasks.filter((t) => t.status === col).map((t) => (
-                <Card key={t._id} style={{ padding: 'var(--space-sm)' }}>
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                    gap: 'var(--space-xs)', marginBottom: '4px',
-                  }}>
-                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', fontWeight: 'var(--font-weight-medium)' }}>
-                      {t.facility?.name ?? 'Unknown facility'}
-                    </div>
-                    <StatusBadge label={t.priority ?? 'Medium'} tone={PRIORITY_TONE[t.priority ?? 'Medium']} />
-                  </div>
-                  <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
-                    {t.description}
-                  </div>
-
-                  {t.status == 'Completed' ? (
-                    <div style={assigneeFieldStyle(t.assignedTo)}>
-                      {t.assignedTo?.name ?? 'Unassigned'}
-                    </div>
-                  ) : (
-                    <select
-                      value={t.assignedTo?._id ?? ''}
-                      onChange={(e) => assign(t._id, e.target.value)}
-                      style={assigneeFieldStyle(t.assignedTo)}
-                    >
-                      <option value="">Unassigned</option>
-                      {staff.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
-                    </select>
-                  )}
-
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                    <StatusBadge label={col} tone={COLUMN_TONE[col]} />
-                    <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                      {col === 'Cancelled' ? (
-                        <button onClick={() => reopen(t._id)} style={linkButtonStyle('var(--color-primary)')}>
-                          Reopen
-                        </button>
-                      ) : (
-                        <>
-                          {col !== 'Completed' && (
-                            <button onClick={() => cancel(t._id)} style={linkButtonStyle('var(--color-danger-text)')}>
-                              Cancel
-                            </button>
-                          )}
-                          {col !== 'Completed' && (
-                            <button onClick={() => advance(t._id, t.status)} style={linkButtonStyle('var(--color-primary)')}>
-                              Move →
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ))}
+      <div style={{ flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+          {/* minWidth: 0 lets the input shrink below its content width so the
+                  button keeps its own size instead of being squeezed. */}
+          <input
+            type="text"
+            placeholder="Search issues..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{ ...inputStyle, flex: 1, minWidth: 0 }}
+          />
+          <Button variant="primary" style={{ flexShrink: 0, whiteSpace: 'nowrap' }} onClick={() => setShowModal(true)}>+ Report issue</Button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-lg)' }}>
+          <select value={facilityFilter} onChange={(e) => setFacilityFilter(e.target.value)} style={selectStyle}>
+            <option value="all">All facilities</option>
+            {facilities.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
+          </select>
+          <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} style={selectStyle}>
+            <option value="all">All staff</option>
+            <option value="unassigned">Unassigned</option>
+            {staff.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+          </select>
+        </div>
       </div>
+
+      < div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-md)' }}>
+        {
+          COLUMNS.map((col) => (
+            <div key={col}>
+              <div style={{
+                fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)',
+                color: 'var(--color-text)', marginBottom: 'var(--space-sm)',
+              }}>
+                {col}{' '}
+                <span style={{ color: 'var(--color-text-muted)', fontWeight: 'var(--font-weight-regular)' }}>
+                  ({visible.filter((t) => t.status === col).length})
+                </span>
+              </div>
+
+              {/* Each column scrolls on its own; the offset adds the column title
+                to the page header, and the right padding keeps cards clear of the scrollbar. */}
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)',
+                maxHeight: 'calc(100vh - 250px)', overflowY: 'auto', paddingRight: '4px',
+              }}>
+                {visible.filter((t) => t.status === col).map((t) => (
+                  <Card key={t._id} style={{ padding: 'var(--space-sm)' }}>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                      gap: 'var(--space-xs)', marginBottom: '4px',
+                    }}>
+                      <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text)', fontWeight: 'var(--font-weight-medium)' }}>
+                        {t.facility?.name ?? 'Unknown facility'}
+                      </div>
+                      <StatusBadge label={t.priority ?? 'Medium'} tone={PRIORITY_TONE[t.priority ?? 'Medium']} />
+                    </div>
+                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
+                      {t.description}
+                    </div>
+
+                    {t.status == 'Completed' ? (
+                      <div style={assigneeFieldStyle(t.assignedTo)}>
+                        {t.assignedTo?.name ?? 'Unassigned'}
+                      </div>
+                    ) : (
+                      <select
+                        value={t.assignedTo?._id ?? ''}
+                        onChange={(e) => assign(t._id, e.target.value)}
+                        style={assigneeFieldStyle(t.assignedTo)}
+                      >
+                        <option value="">Unassigned</option>
+                        {staff.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                      </select>
+                    )}
+
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                      <StatusBadge label={col} tone={COLUMN_TONE[col]} />
+                      <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                        {col === 'Cancelled' ? (
+                          <button onClick={() => reopen(t._id)} style={linkButtonStyle('var(--color-primary)')}>
+                            Reopen
+                          </button>
+                        ) : (
+                          <>
+                            {col !== 'Completed' && (
+                              <button onClick={() => cancel(t._id)} style={linkButtonStyle('var(--color-danger-text)')}>
+                                Cancel
+                              </button>
+                            )}
+                            {col !== 'Completed' && (
+                              <button onClick={() => advance(t._id, t.status)} style={linkButtonStyle('var(--color-primary)')}>
+                                Move →
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))
+        }
+      </div >
 
       {showModal && (
         <ReportIssueModal
@@ -264,7 +307,7 @@ function MaintenanceBoard() {
           onCreated={(newTask) => setTasks((prev) => [newTask, ...prev])}
         />
       )}
-    </div>
+    </div >
   )
 }
 
