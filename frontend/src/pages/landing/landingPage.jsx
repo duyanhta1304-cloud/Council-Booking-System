@@ -1,13 +1,15 @@
 import { Link } from 'react-router'
 import { ledger } from './ledgerTheme'
+import communityHall from '../../assets/communityhall.jpg'
+import communityHall2 from '../../assets/communityhall2.jpg'
+import communityHall3 from '../../assets/communityhall3.jpg'
 
 const FEATURED_FACILITIES = [
-    { id: 1, name: 'Community Hall A', category: 'Hall', status: 'Available', tint: [ledger.navy, ledger.navyDeep] },
-    { id: 4, name: 'Community Hall C', category: 'Hall', status: 'Available', tint: [ledger.brass, '#7a541d'] },
-    { id: 5, name: 'Meeting Room D', category: 'Room', status: 'Available', tint: ['#3d5a52', '#1e2f2a'] },
+    { id: 1, name: 'Community Hall A', category: 'Hall', status: 'Available', image: communityHall, alt: 'Interior of Community Hall A set up with chairs' },
+    { id: 4, name: 'Community Hall C', category: 'Hall', status: 'Available', image: communityHall2, alt: 'Community Hall C main floor' },
+    { id: 5, name: 'Meeting Room D', category: 'Room', status: 'Available', image: communityHall3, alt: 'Meeting Room D with table seating' },
 ]
-// TODO: replace with GET /api/facilities?featured=true
-
+    
 function LandingPage() {
     return (
         <div style={{ fontFamily: ledger.fontBody, color: ledger.ink, backgroundColor: ledger.paper }}>
@@ -17,6 +19,7 @@ function LandingPage() {
             <FeaturedFacilities />
             <HowItWorks />
             <Support />
+            <Footer />
         </div>
     )
 }
@@ -179,8 +182,11 @@ function FeaturedFacilities() {
                         }}>
                             <div style={{
                                 height: '132px', position: 'relative', borderBottom: `1px dashed ${ledger.rule}`,
-                                background: `linear-gradient(155deg, ${f.tint[0]}, ${f.tint[1]})`,
+                                backgroundColor: ledger.navy,
                             }}>
+                                <img src={f.image} alt={f.alt} loading="lazy" style={{
+                                    width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                                }} />
                                 <Punch side="left" /><Punch side="right" />
                             </div>
                             <div style={{ padding: '18px 20px 0' }}>
@@ -240,16 +246,187 @@ function HowItWorks() {
 }
 
 function Support() {
+    const channels = [
+        {
+            label: 'By phone',
+            value: '(02) 4466 7767',
+            href: 'tel:+61244667767',
+            note: 'Monday to Friday, 9:00am to 5:00pm. Closed public holidays.',
+        },
+        {
+            label: 'By email',
+            value: 'bookings@coastallink.nsw.gov.au',
+            href: 'mailto:bookings@coastallink.nsw.gov.au',
+            note: 'We aim to respond within two business days.',
+        },
+        {
+            label: 'In person',
+            value: 'Customer Service Centre',
+            href: null,
+            note: '12 Harbour Parade, Kiama NSW 2533',
+        },
+    ]
+
     return (
-        <section id="support" style={{ padding: '80px 32px 100px' }}>
-            <div style={{ maxWidth: '720px', margin: '0 auto', borderTop: `3px solid ${ledger.brass}`, paddingTop: '22px' }}>
-                <p style={{ fontSize: '1.05rem', color: ledger.inkSoft, margin: 0 }}>
-                    Prefer to book by phone? Call our Customer Service team on{' '}
-0466776778
-                    , Monday–Friday, 9am–5pm.
-                </p>
+        <section id="support" style={{ maxWidth: '1180px', margin: '0 auto', padding: '80px 32px 96px' }}>
+            <SectionHead title="Need a hand?" meta="CONTACT" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '28px' }}>
+                {channels.map((c) => (
+                    <div key={c.label} style={{ borderTop: `3px solid ${ledger.brass}`, paddingTop: '18px' }}>
+                        <div style={{
+                            fontFamily: ledger.fontMono, fontSize: '11px', letterSpacing: '.1em',
+                            textTransform: 'uppercase', color: ledger.inkSoft, marginBottom: '10px',
+                        }}>
+                            {c.label}
+                        </div>
+                        {c.href ? (
+                            <a href={c.href} style={{
+                                fontFamily: ledger.fontHeading, fontSize: '1.2rem', fontWeight: 600,
+                                color: ledger.ink, textDecoration: 'none', borderBottom: `1px solid ${ledger.rule}`,
+                            }}>
+                                {c.value}
+                            </a>
+                        ) : (
+                            <div style={{ fontFamily: ledger.fontHeading, fontSize: '1.2rem', fontWeight: 600 }}>{c.value}</div>
+                        )}
+                        <p style={{ color: ledger.inkSoft, fontSize: '.9rem', lineHeight: 1.6, margin: '10px 0 0' }}>{c.note}</p>
+                    </div>
+                ))}
             </div>
         </section>
+    )
+}
+
+const FOOTER_COLUMNS = [
+    {
+        heading: 'Facilities',
+        links: [
+            { label: 'Search facilities', to: '/resident/facilities' },
+            { label: 'Halls and function rooms', href: '#' },
+            { label: 'Sports courts and fields', href: '#' },
+            { label: 'Fees and charges', href: '#' },
+        ],
+    },
+    {
+        heading: 'Bookings',
+        links: [
+            { label: 'My bookings', to: '/resident/bookings' },
+            { label: 'Conditions of use', href: '#' },
+            { label: 'Cancellations and refunds', href: '#' },
+            { label: 'Insurance requirements', href: '#' },
+        ],
+    },
+    {
+        heading: 'Council',
+        links: [
+            { label: 'About CoastalLink', href: '#' },
+            { label: 'Council meetings', href: '#' },
+            { label: 'News and notices', href: '#' },
+            { label: 'Careers', href: '#' },
+        ],
+    },
+    {
+        heading: 'Help',
+        links: [
+            { label: 'Contact us', href: '#support' },
+            { label: 'Report a facility issue', href: '#' },
+            { label: 'Frequently asked questions', href: '#' },
+            { label: 'Accessibility', href: '#' },
+        ],
+    },
+]
+
+const FOOTER_LEGAL = ['Privacy', 'Terms of use', 'Disclaimer', 'Right to information', 'Sitemap']
+
+function Footer() {
+    const linkStyle = {
+        color: '#cfe0e2', fontSize: '.92rem', textDecoration: 'none',
+        display: 'inline-block', padding: '5px 0', lineHeight: 1.5,
+    }
+
+    return (
+        <footer style={{ backgroundColor: ledger.navyDeep, color: ledger.onPrimary, padding: '72px 32px 32px' }}>
+            <div style={{ maxWidth: '1180px', margin: '0 auto' }}>
+                <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                    gap: '40px 28px', alignItems: 'start',
+                }}>
+                    <div style={{ minWidth: 0 }}>
+                        <div style={{ fontFamily: ledger.fontHeading, fontSize: '1.45rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
+                            CoastalLink
+                        </div>
+                        <div style={{
+                            fontFamily: ledger.fontMono, fontSize: '11px', letterSpacing: '.1em',
+                            textTransform: 'uppercase', color: ledger.brassBright, marginTop: '8px',
+                        }}>
+                            Council Facility Services
+                        </div>
+                        <p style={{ color: '#a9c1c4', fontSize: '.9rem', lineHeight: 1.7, margin: '18px 0 0', maxWidth: '30ch' }}>
+                            12 Harbour Parade<br />
+                            Kiama NSW 2533<br />
+                            PO Box 114, Kiama NSW 2533
+                        </p>
+                        <p style={{ fontSize: '.9rem', lineHeight: 1.7, margin: '14px 0 0' }}>
+                            <a href="tel:+61244667767" style={{ ...linkStyle, padding: 0 }}>(02) 4466 7767</a><br />
+                            <a href="mailto:bookings@coastallink.nsw.gov.au" style={{ ...linkStyle, padding: 0 }}>
+                                bookings@coastallink.nsw.gov.au
+                            </a>
+                        </p>
+                    </div>
+
+                    {FOOTER_COLUMNS.map((col) => (
+                        <nav key={col.heading} aria-label={col.heading} style={{ minWidth: 0 }}>
+                            <h3 style={{
+                                fontFamily: ledger.fontMono, fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase',
+                                color: ledger.brassBright, fontWeight: 500, margin: '0 0 12px',
+                            }}>
+                                {col.heading}
+                            </h3>
+                            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                                {col.links.map((link) => (
+                                    <li key={link.label}>
+                                        {link.to
+                                            ? <Link to={link.to} style={linkStyle}>{link.label}</Link>
+                                            : <a href={link.href} style={linkStyle}>{link.label}</a>}
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+                    ))}
+                </div>
+
+                <p style={{
+                    borderTop: '1px solid rgba(244,239,226,.18)', marginTop: '48px', paddingTop: '26px',
+                    color: '#a9c1c4', fontSize: '.85rem', lineHeight: 1.7, maxWidth: '78ch',
+                }}>
+                    CoastalLink acknowledges the Traditional Custodians of the land and waters on which we
+                    work, and pays respect to Elders past and present.
+                </p>
+
+                <div style={{
+                    borderTop: '1px solid rgba(244,239,226,.18)', marginTop: '22px', paddingTop: '22px',
+                    display: 'flex', flexWrap: 'wrap', gap: '12px 28px', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                    <span style={{ color: '#8fa9ad', fontSize: '.82rem' }}>
+                        &copy; {new Date().getFullYear()} CoastalLink Council &middot; ABN 42 001 114 233
+                    </span>
+                    <ul style={{
+                        listStyle: 'none', margin: 0, padding: 0, display: 'flex',
+                        flexWrap: 'wrap', gap: '8px 20px',
+                    }}>
+                        {FOOTER_LEGAL.map((label) => (
+                            <li key={label}>
+                                <a href="#" style={{ ...linkStyle, padding: 0, fontSize: '.82rem' }}>{label}</a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                <p style={{ color: '#6d868b', fontSize: '.78rem', margin: '20px 0 0' }}>
+                    Demonstration site built for CSIT214. Contact details and linked pages are placeholders.
+                </p>
+            </div>
+        </footer>
     )
 }
 

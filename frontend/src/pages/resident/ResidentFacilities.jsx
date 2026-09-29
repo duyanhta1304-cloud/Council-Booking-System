@@ -69,8 +69,9 @@ function firstOpenDate(closures, from = startOfToday()) {
   return null
 }
 
-function ClosureNotice({ closures }) {
-  const relevant = relevantClosure(closures)
+// Sits over the bottom of the image rather than in the card body: the image is
+// a fixed height, so state costs no layout and every card body stays level.
+function ClosureRibbon({ relevant }) {
   if (!relevant) return null
 
   const { closure, active } = relevant
@@ -78,74 +79,92 @@ function ClosureNotice({ closures }) {
   const reopensIn = daysUntil(closure.endDate) + 1
   const startsIn = daysUntil(closure.startDate)
 
+  const headline = active
+    ? `Closed for ${reopensIn} more ${reopensIn === 1 ? 'day' : 'days'}`
+    : `Closing ${inDays(startsIn)}`
+
+  const detail = active
+    ? `reopens ${formatDay(new Date(closure.endDate).getTime() + DAY_MS)}`
+    : `${formatDay(closure.startDate)} to ${formatDay(closure.endDate)}`
+
   return (
-    <div style={{
-      marginTop: 'var(--space-sm)',
-      backgroundColor: active ? 'var(--color-danger-bg)' : 'var(--color-warning-bg)',
-      color: active ? 'var(--color-danger-text)' : 'var(--color-warning-text)',
-      padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-md)',
-      fontSize: 'var(--font-size-xs)',
-    }}>
-      {active ? (
-        <>
-          <strong>Closed for {reopensIn} more {reopensIn === 1 ? 'day' : 'days'}</strong>
-          {' '}— reopens {formatDay(new Date(closure.endDate).getTime() + DAY_MS)}<br/><br/>Reason: {closure.reason}
-        </>
-      ) : (
-        <>
-          <strong>Closing {inDays(startsIn)}</strong>
-          {' '}— {formatDay(closure.startDate)} to {formatDay(closure.endDate)}. {closure.reason}
-        </>
-      )}
+    <div
+      // The reason no longer fits on one line, so it lives in the tooltip —
+      // the booking modal still shows it in full on the closed date.
+      title={`${headline} — ${detail}. Reason: ${closure.reason}`}
+      style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        backgroundColor: active ? 'var(--color-danger-bg)' : 'var(--color-warning-bg)',
+        color: active ? 'var(--color-danger-text)' : 'var(--color-warning-text)',
+        padding: '6px var(--space-md)',
+        fontSize: 'var(--font-size-xs)',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}
+    >
+      <strong>{headline}</strong> — {detail}
     </div>
   )
 }
 
-function FacilityCard({ facility, closures = [], onRequestBooking }) {
-  const closedNow = relevantClosure(closures)?.active ?? false
-  const openFrom = firstOpenDate(closures)
-
-  // A closure has a known end date, so booking past it is fine — only the
-  // facility's own status (which has no end date) takes it off the market.
-  // The one exception is a closure running past the whole booking horizon,
-  // where there is no open day left to offer.
-  const isClosed = facility.status !== 'Active' || openFrom === null
-
+function FacilityCard({ facility, relevant, closedNow, openFrom, isClosed, onRequestBooking }) {
   return (
-    <Card style={{ padding: 0, overflow: 'hidden' }}>
-      {facility.image ? (
-        <img
-          src={facility.image}
-          alt=""
-          style={{ width: '100%', height: '150px', objectFit: 'cover', display: 'block' }}
-        />
-      ) : (
-        <div style={{
-          height: '150px', backgroundColor: 'var(--color-primary-light)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--color-primary)', fontFamily: 'var(--font-family-heading)',
-          fontSize: 'var(--font-size-2xl)',
-        }}>
-          {facility.name.charAt(0)}
-        </div>
-      )}
-
-      <div style={{ padding: 'var(--space-lg)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-sm)' }}>
-          <div>
-            <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-semibold)' }}>
-              {facility.name}
-            </h3>
-            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-              {facility.description}
-            </p>
+    <Card style={{
+      padding: 0, overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', height: '100%',
+    }}>
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        {facility.image ? (
+          <img
+            src={facility.image}
+            alt=""
+            style={{ width: '100%', height: '150px', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{
+            height: '150px', backgroundColor: 'var(--color-primary-light)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--color-primary)', fontFamily: 'var(--font-family-heading)',
+            fontSize: 'var(--font-size-2xl)',
+          }}>
+            {facility.name.charAt(0)}
           </div>
+        )}
+
+        <div style={{ position: 'absolute', top: 'var(--space-sm)', right: 'var(--space-sm)' }}>
           <Badge tone={availabilityTone(facility.status)}>{facility.status}</Badge>
         </div>
 
-        <ClosureNotice closures={closures} />
+        <ClosureRibbon relevant={relevant} />
+      </div>
 
-        <div style={{ marginTop: 'var(--space-md)' }}>
+      <div style={{ padding: 'var(--space-lg)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <h3
+          title={facility.name}
+          style={{
+            fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-semibold)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}
+        >
+          {facility.name}
+        </h3>
+
+        {/* Two lines whatever the description's length, so the text block below
+            the title is the same height on every card. */}
+        <p
+          title={facility.description}
+          style={{
+            fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)',
+            marginTop: '2px', lineHeight: 1.3, minHeight: '2.6em',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {facility.description}
+        </p>
+
+        {/* marginTop: auto pins the button to the card's bottom edge, so every
+            button in a row shares one baseline however tall the row grows. */}
+        <div style={{ marginTop: 'auto', paddingTop: 'var(--space-md)' }}>
           <button
             style={{ ...buttonStyle, opacity: isClosed ? 0.5 : 1, cursor: isClosed ? 'not-allowed' : 'pointer' }}
             disabled={isClosed}
@@ -226,7 +245,6 @@ function BookingRequestModal({ facility, openFrom, onClose, onSubmit }) {
   // Open on the first date the facility is actually free. During a closure
   // that is a later date, so the grid isn't a wall of "Closed" on arrival.
   const suggested = openFrom ?? today
-  const openedOnLaterDate = toDateInputValue(suggested) !== toDateInputValue(today)
 
   const [date, setDate] = useState(toDateInputValue(suggested))
   // null means "still loading" — avoids a separate loading flag the effect
@@ -460,9 +478,27 @@ function ResidentFacilities() {
       .finally(() => setLoading(false))
   }, [])
 
-  const filtered = facilities.filter((f) =>
-    f.name.toLowerCase().includes(query.toLowerCase())
-  )
+  // Closure state is derived here, not inside the card, so the list can sort on
+  // it — and each helper runs once per facility instead of once per render.
+  const visible = facilities
+    .filter((f) => f.name.toLowerCase().includes(query.toLowerCase()))
+    .map((facility) => {
+      const closures = closuresByFacility[facility._id] ?? []
+      const relevant = relevantClosure(closures)
+      const openFrom = firstOpenDate(closures)
+
+      // A closure has a known end date, so booking past it is fine — only the
+      // facility's own status (which has no end date) takes it off the market.
+      // The one exception is a closure running past the whole booking horizon,
+      // where there is no open day left to offer.
+      const isClosed = facility.status !== 'Active' || openFrom === null
+
+      // 0 bookable now · 1 bookable but shut today or shutting soon · 2 off the market.
+      const rank = isClosed ? 2 : relevant ? 1 : 0
+
+      return { facility, relevant, openFrom, isClosed, rank, closedNow: relevant?.active ?? false }
+    })
+    .sort((a, b) => a.rank - b.rank || a.facility.name.localeCompare(b.facility.name))
 
   async function handleSubmitRequest({ facilityId, facilityName, startTime, endTime, purpose }) {
     try {
@@ -513,17 +549,20 @@ function ResidentFacilities() {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--space-md)',
         ...tableStyles.scrollWrapper('calc(100vh - 170px)'), paddingRight: '4px',
       }}>
-        {filtered.map((f) => (
+        {visible.map(({ facility, relevant, openFrom, isClosed, closedNow }) => (
           <FacilityCard
-            key={f._id}
-            facility={f}
-            closures={closuresByFacility[f._id] ?? []}
-            onRequestBooking={(facility, openFrom) => setRequest({ facility, openFrom })}
+            key={facility._id}
+            facility={facility}
+            relevant={relevant}
+            openFrom={openFrom}
+            isClosed={isClosed}
+            closedNow={closedNow}
+            onRequestBooking={(f, from) => setRequest({ facility: f, openFrom: from })}
           />
         ))}
       </div>
 
-      {filtered.length === 0 && (
+      {visible.length === 0 && (
         <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-lg)' }}>
           No facilities match your search.
         </p>

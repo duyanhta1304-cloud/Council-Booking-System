@@ -8,6 +8,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon server.js",
+    "db:seed": "node seed_db.js",
+    "db:clear": "node seed_db.js --clear",
+    "db:wipe": "node seed_db.js --wipe --yes",
+    "db:reset": "node seed_db.js --reset --yes --count 60",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -24,5 +28,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

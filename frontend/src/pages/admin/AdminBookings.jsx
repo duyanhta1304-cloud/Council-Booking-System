@@ -1,20 +1,9 @@
 import { useState, useEffect } from 'react'
 import api from '../../lib/axios'
-import { PageHeader, Card, StatusBadge, Button, bookingSubject, tableStyles, inputStyle, selectStyle } from '../../components/ui'
+import { PageHeader, Card, StatusBadge, Button, bookingSubject, bookingOptions, tableStyles, inputStyle, selectStyle } from '../../components/ui'
 import toast from 'react-hot-toast'
 
 const STATUS_TONE = { Approved: 'success', Pending: 'warning', Cancelled: 'neutral', Rejected: 'danger' }
-
-// The facility and requester dropdowns list what the bookings actually contain,
-// so neither needs its own request.
-function optionsFrom(bookings, pick) {
-  const byId = new Map()
-  for (const b of bookings) {
-    const item = pick(b)
-    if (item?._id) byId.set(item._id, item.name)
-  }
-  return [...byId].sort((a, b) => a[1].localeCompare(b[1]))
-}
 
 function AllBookings() {
   const [bookings, setBookings] = useState([])
@@ -31,8 +20,8 @@ function AllBookings() {
       .finally(() => setLoading(false))
   }, [])
 
-  const facilityOptions = optionsFrom(bookings, (b) => b.facility)
-  const userOptions = optionsFrom(bookings, (b) => b.user)
+  const facilityOptions = bookingOptions(bookings, (b) => b.facility)
+  const userOptions = bookingOptions(bookings, (b) => b.user)
 
   const q = query.trim().toLowerCase()
   const filtered = bookings.filter((b) => {

@@ -1,0 +1,5 @@
+# Vercel runs the build itself; only the source needs to travel.
+.env
+.env.*
+node_modules
+dist

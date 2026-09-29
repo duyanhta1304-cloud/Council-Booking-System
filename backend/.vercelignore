@@ -1,0 +1,9 @@
+# Uploaded deploys ignore .gitignore, so these are excluded explicitly.
+# .env must never ship: app.js calls dotenv.config(), and a stray
+# NODE_ENV=development would flip the auth cookie back to sameSite 'lax'.
+.env
+.env.*
+node_modules
+seed_db.js
+wipe_db.js
+migrate_equipment.js

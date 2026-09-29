@@ -63,6 +63,18 @@ export function bookingSubject(booking) {
   return { primary: items || 'Equipment', secondary }
 }
 
+// Dropdown options built from the bookings already on screen, so a facility or
+// requester filter needs no extra request. `pick` pulls the populated ref off a
+// booking (e.g. `(b) => b.facility`); bookings missing it are skipped.
+export function bookingOptions(bookings, pick) {
+  const byId = new Map()
+  for (const b of bookings) {
+    const item = pick(b)
+    if (item?._id) byId.set(item._id, item.name)
+  }
+  return [...byId].sort((a, b) => a[1].localeCompare(b[1]))
+}
+
 export function BookingSubject({ booking }) {
   const { primary, secondary } = bookingSubject(booking)
   return (
