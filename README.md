@@ -72,8 +72,8 @@ AirplaneMode/
     ├── controllers/           Request handling and business rules
     ├── models/                8 Mongoose schemas
     ├── middleware/            JWT auth guard and cookie/token helpers
-    ├── db/                    Cached Mongoose connection
-    └── seed_db.js             Sample-data seeder for demos and stress testing
+    └── db/                    Cached Mongoose connection
+
 ```
 
 Each role's pages live in their own folder and are mounted inside a matching
@@ -200,8 +200,6 @@ portal.
 ```bash
 cd frontend && npm run build    # production build into dist/
 cd frontend && npm run lint     # ESLint
-cd backend  && node seed_db.js  # populate the database with sample data
-cd backend  && node wipe_db.js  # remove seeded documents
 ```
 
 ---
@@ -269,14 +267,11 @@ end to end against MongoDB. The application is deployed on Vercel.
 
 | Role | Name |
 |---|---|
-| Project Sponsor | _TBC_ |
-| Project Manager | _TBC_ |
-| Documentation Manager | _TBC_ |
-| Project Planner | _TBC_ |
-| System Analyst | _TBC_ |
-| Business Analyst | _TBC_ |
-
-Code contributors to this repository: Heng Jun Kai, Duy Anh.
+| Project Sponsor | Tai Papesch-Ward |
+| Project Manager | Jun Kai Heng |
+| Documentation Manager | Min Qi Wong |
+| Project Planner | Sayu Nitanai |
+| Technical Coordinator | Duy Anh Ta |
 
 ---
 
